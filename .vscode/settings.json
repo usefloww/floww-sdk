@@ -1,0 +1,25 @@
+{
+  "files.exclude": {
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/CVS": true,
+    "**/.DS_Store": true,
+    "**/Thumbs.db": true,
+    "**/.pytest_cache": true,
+    "**/.mypy_cache": true,
+    "**/__pycache__": true,
+    "**/.venv": true,
+    "**/.ruff_cache": true,
+    "**/flow.egg-info": true,
+  },
+  "vitest.configSearchPatternExclude": "**/{node_modules.*,dist}/**",
+  "vitest.nodeExecutable": "/Users/toon/.local/share/mise/installs/node/22.15.0/bin/node",
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "typescript.tsdk": "sdk/node_modules/typescript/lib"
+
+
+}

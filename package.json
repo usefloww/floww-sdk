@@ -1,0 +1,44 @@
+{
+  "name": "@floww/sdk",
+  "version": "1.0.0",
+  "description": "SDK for building trigger-based workflows",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "test:examples": "tsx examples/triggers.ts",
+    "prepublishOnly": "pnpm build"
+  },
+  "keywords": ["trigger", "workflow", "automation", "sdk"],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.9.0",
+  "dependencies": {
+    "@pulumi/gitlab": "^9.2.1",
+    "@pulumi/pulumi": "^3.196.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2",
+    "tsup": "^8.3.5",
+    "vitest": "^2.1.8",
+    "tsx": "^4.19.2"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
+  }
+}
