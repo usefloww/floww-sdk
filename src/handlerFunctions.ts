@@ -3,12 +3,11 @@ import { Trigger } from "./common";
 import fs from "node:fs";
 import path from "node:path";
 
-
 export const provision = async (triggers: Trigger[]) => {
   const infrastructure = triggers.flatMap((t) => t.infrastructure);
 
-  const stateDir = path.resolve(process.cwd(), "pulumi-state"); // absolute
-fs.mkdirSync(stateDir, { recursive: true });                  // ensure it exists
+  const stateDir = path.resolve(process.cwd(), "pulumi-state");
+  fs.mkdirSync(stateDir, { recursive: true });
 
   const pulumiProgram = async () => {
     return {
@@ -28,6 +27,7 @@ fs.mkdirSync(stateDir, { recursive: true });                  // ensure it exist
       PULUMI_CONFIG_PASSPHRASE: "change-me",
     },
   });
-  await stack.up();
-  console.log("Provisioned");
+
+  const result = await stack.up();
+  return result;
 };

@@ -2,6 +2,13 @@
   "name": "@floww/sdk",
   "version": "1.0.0",
   "description": "SDK for building trigger-based workflows",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/toon/floww-sdk.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -21,8 +28,13 @@
     "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
     "test": "vitest",
     "test:watch": "vitest --watch",
+    "test:ci": "vitest run",
     "test:examples": "tsx examples/triggers.ts",
-    "prepublishOnly": "pnpm build"
+    "prepublishOnly": "pnpm build",
+    "version:patch": "npm version patch --no-git-tag-version",
+    "version:minor": "npm version minor --no-git-tag-version",
+    "version:major": "npm version major --no-git-tag-version",
+    "version:prerelease": "npm version prerelease --preid=beta --no-git-tag-version"
   },
   "keywords": ["trigger", "workflow", "automation", "sdk"],
   "author": "",

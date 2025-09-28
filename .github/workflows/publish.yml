@@ -1,0 +1,156 @@
+name: Publish Package
+
+on:
+  push:
+    branches:
+      - main
+      - 'feature/**'
+      - 'feat/**'
+      - develop
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://npm.pkg.github.com'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.9.0
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Run tests
+        run: pnpm run test:ci
+
+      - name: Build package
+        run: pnpm run build
+
+  publish:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://npm.pkg.github.com'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.9.0
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build package
+        run: pnpm run build
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+      - name: Determine version strategy
+        id: version
+        run: |
+          BRANCH_NAME=${GITHUB_REF#refs/heads/}
+          echo "Branch: $BRANCH_NAME"
+
+          if [[ "$BRANCH_NAME" == "main" ]]; then
+            # Main branch: patch version
+            echo "strategy=patch" >> $GITHUB_OUTPUT
+            echo "tag_prefix=" >> $GITHUB_OUTPUT
+          elif [[ "$BRANCH_NAME" == "develop" ]]; then
+            # Develop branch: prerelease with alpha
+            echo "strategy=prerelease" >> $GITHUB_OUTPUT
+            echo "tag_prefix=alpha" >> $GITHUB_OUTPUT
+          elif [[ "$BRANCH_NAME" == feature/* ]] || [[ "$BRANCH_NAME" == feat/* ]]; then
+            # Feature branch: prerelease with beta
+            echo "strategy=prerelease" >> $GITHUB_OUTPUT
+            echo "tag_prefix=beta" >> $GITHUB_OUTPUT
+          else
+            # Other branches: prerelease with rc
+            echo "strategy=prerelease" >> $GITHUB_OUTPUT
+            echo "tag_prefix=rc" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update version
+        run: |
+          if [[ "${{ steps.version.outputs.strategy }}" == "prerelease" ]]; then
+            npm version prerelease --preid=${{ steps.version.outputs.tag_prefix }} --no-git-tag-version
+          else
+            npm version ${{ steps.version.outputs.strategy }} --no-git-tag-version
+          fi
+
+          # Get the new version
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+
+      - name: Create package variant for feature branches
+        if: steps.version.outputs.strategy == 'prerelease'
+        run: |
+          # For feature branches, create a scoped variant to avoid conflicts
+          BRANCH_NAME=${GITHUB_REF#refs/heads/}
+          SAFE_BRANCH=$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9]/-/g' | tr '[:upper:]' '[:lower:]')
+
+          # Update package name for feature branches to include branch info
+          if [[ "$BRANCH_NAME" != "develop" ]]; then
+            jq --arg branch "$SAFE_BRANCH" '.name = "@floww/sdk-" + $branch' package.json > package.tmp.json
+            mv package.tmp.json package.json
+          fi
+
+      - name: Publish to GitHub Package Registry
+        run: |
+          if [[ "${{ steps.version.outputs.strategy }}" == "prerelease" ]]; then
+            pnpm publish --tag ${{ steps.version.outputs.tag_prefix }} --access public --no-git-checks
+          else
+            pnpm publish --access public --no-git-checks
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Git tag for main branch
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git tag "v$NEW_VERSION"
+          git push origin "v$NEW_VERSION"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create GitHub Release for main branch
+        if: github.ref == 'refs/heads/main'
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ env.NEW_VERSION }}
+          release_name: Release v${{ env.NEW_VERSION }}
+          body: |
+            ## Changes in v${{ env.NEW_VERSION }}
+
+            See the full changelog in the commit history.
+
+            ### Installation
+            ```bash
+            npm install @floww/sdk@${{ env.NEW_VERSION }}
+            ```
+          draft: false
+          prerelease: false
