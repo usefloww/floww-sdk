@@ -16,11 +16,11 @@ SDK for building trigger-based workflows with dynamic TypeScript code execution.
 ### From GitHub Package Registry
 
 ```bash
-# Configure npm to use GitHub Package Registry for @floww scope
-echo "@floww:registry=https://npm.pkg.github.com" >> .npmrc
+# Configure npm to use GitHub Package Registry for @developerflows scope
+echo "@developerflows:registry=https://npm.pkg.github.com" >> .npmrc
 
 # Install the package
-npm install @floww/sdk
+npm install @developerflows/floww-sdk
 ```
 
 ### Authentication
@@ -37,7 +37,7 @@ echo "//npm.pkg.github.com/:_authToken=YOUR_GITHUB_TOKEN" >> .npmrc
 ### Basic Example
 
 ```typescript
-import { executeUserProject } from '@floww/sdk';
+import { executeUserProject } from '@developerflows/floww-sdk';
 
 const files = {
   "main.ts": `
@@ -119,16 +119,16 @@ This package uses different versioning strategies based on the branch:
 
 ```bash
 # Latest stable release
-npm install @floww/sdk
+npm install @developerflows/floww-sdk
 
 # Alpha version from develop branch
-npm install @floww/sdk@alpha
+npm install @developerflows/floww-sdk@alpha
 
 # Beta version from feature branch
-npm install @floww/sdk@beta
+npm install @developerflows/floww-sdk@beta
 
 # Specific feature branch
-npm install @floww/sdk-feature-new-feature@beta
+npm install @developerflows/floww-sdk-feature-new-feature@beta
 ```
 
 ## Development

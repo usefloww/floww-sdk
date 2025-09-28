@@ -113,7 +113,7 @@ jobs:
 
           # Update package name for feature branches to include branch info
           if [[ "$BRANCH_NAME" != "develop" ]]; then
-            jq --arg branch "$SAFE_BRANCH" '.name = "@floww/sdk-" + $branch' package.json > package.tmp.json
+            jq --arg branch "$SAFE_BRANCH" '.name = "@developerflows/floww-sdk-" + $branch' package.json > package.tmp.json
             mv package.tmp.json package.json
           fi
 

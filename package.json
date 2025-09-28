@@ -1,10 +1,10 @@
 {
-  "name": "@floww/sdk",
+  "name": "@developerflows/floww-sdk",
   "version": "1.0.0",
   "description": "SDK for building trigger-based workflows",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/toon/floww-sdk.git"
+    "url": "git+https://github.com/developerflows/floww-sdk.git"
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
