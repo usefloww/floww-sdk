@@ -131,30 +131,3 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create Git tag for main branch
-        if: github.ref == 'refs/heads/main'
-        run: |
-          git tag "v$NEW_VERSION"
-          git push origin "v$NEW_VERSION"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create GitHub Release for main branch
-        if: github.ref == 'refs/heads/main'
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: v${{ env.NEW_VERSION }}
-          release_name: Release v${{ env.NEW_VERSION }}
-          body: |
-            ## Changes in v${{ env.NEW_VERSION }}
-
-            See the full changelog in the commit history.
-
-            ### Installation
-            ```bash
-            npm install @floww/sdk@${{ env.NEW_VERSION }}
-            ```
-          draft: false
-          prerelease: false
