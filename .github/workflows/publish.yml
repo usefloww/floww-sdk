@@ -80,8 +80,8 @@ jobs:
           # Sanitize branch name for npm version (replace special chars with dash)
           SAFE_BRANCH=$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9]/-/g' | tr '[:upper:]' '[:lower:]')
 
-          # Create version: branch-commithash
-          NEW_VERSION="${SAFE_BRANCH}-${COMMIT_HASH}"
+          # Create semver-compliant version: 0.0.0-branch.commithash
+          NEW_VERSION="0.0.0-${SAFE_BRANCH}.${COMMIT_HASH}"
 
           # Update package.json version
           jq --arg version "$NEW_VERSION" '.version = $version' package.json > package.tmp.json
