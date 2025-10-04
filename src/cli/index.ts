@@ -2,6 +2,7 @@
 import { Command } from 'commander';
 import { devCommand } from './commands/dev';
 import { startCommand } from './commands/start';
+import { loginCommand, logoutCommand, whoamiCommand } from './commands/auth';
 
 const program = new Command();
 
@@ -25,5 +26,20 @@ program
   .option('-p, --port <port>', 'Port for webhook server', '3000')
   .option('-h, --host <host>', 'Host for webhook server', '0.0.0.0')
   .action(startCommand);
+
+program
+  .command('login')
+  .description('Login')
+  .action(loginCommand);
+
+program
+  .command('logout')
+  .description('Logout')
+  .action(logoutCommand);
+
+program
+  .command('whoami')
+  .description('Show the current user')
+  .action(whoamiCommand);
 
 program.parse();
