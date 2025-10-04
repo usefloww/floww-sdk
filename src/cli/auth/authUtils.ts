@@ -1,9 +1,9 @@
 import fs from 'fs';
 import path from 'path';
-import os from 'os';
 import { StoredAuth } from './authTypes';
+import { getFlowwConfigDir } from '../config/xdg';
 
-const CONFIG_DIR = path.join(os.homedir(), '.mycli');
+const CONFIG_DIR = getFlowwConfigDir();
 const TOKEN_FILE = path.join(CONFIG_DIR, 'auth.json');
 
 export function saveTokens(auth: StoredAuth): void {

@@ -1,9 +1,17 @@
 import { CLIAuth } from "../auth/auth";
 import { clearTokens, loadTokens, saveTokens } from "../auth/authUtils";
-
-const clientId = "client_01K6QQP8Q721ZX1YM1PBV3EWMR";
+import { getConfigValue } from "../config/configUtils";
 
 async function loginCommand() {
+  // Get client ID from config system
+  const clientId = getConfigValue('workosClientId');
+
+  if (!clientId) {
+    console.error('❌ WorkOS client ID not configured. Please set it first:');
+    console.error('   floww config set workos-client-id <your-client-id>');
+    process.exit(1);
+  }
+
   const auth = new CLIAuth(clientId);
 
   try {
@@ -24,7 +32,7 @@ async function logoutCommand() {
 async function whoamiCommand() {
   const tokens = loadTokens();
   if (!tokens) {
-    console.error('❌ Not logged in. Run "mycli login" first.');
+    console.error('❌ Not logged in. Run "floww login" first.');
     process.exit(1);
   }
 
