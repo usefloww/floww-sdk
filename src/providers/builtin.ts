@@ -14,8 +14,6 @@ export class Builtin implements Provider {
                 type: 'cron',
                 expression: args.expression,
                 handler: args.handler,
-                setup: args.setup,
-                teardown: args.teardown,
             }
         },
         onWebhook: <TBody = any>(args: WebhookTriggerArgs<TBody>): WebhookTrigger<TBody> => {
