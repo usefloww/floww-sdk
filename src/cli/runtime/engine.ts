@@ -5,6 +5,9 @@ import { EventStream, EventProducer } from './types';
 import { WebhookEventProducer } from './eventProducers/webhookEventProducer';
 import { CronEventProducer } from './eventProducers/cronEventProducer';
 import { WebSocketEventProducer } from './eventProducers/websocketEventProducer';
+import { ApiClient } from '../api/client';
+import { getConfig } from '../config/configUtils';
+import { tryLoadProjectConfig, ProjectConfig } from '../config/projectConfig';
 
 export class FlowEngine {
   private eventStream = new EventStream();
@@ -12,6 +15,9 @@ export class FlowEngine {
   private triggers: Trigger[] = [];
   private secretManager = new SecretManager();
   private providers: Set<Provider> = new Set();
+  private webhookMetadata: Map<WebhookTrigger, Map<string, any>> = new Map();
+  private realtimeMetadata: Map<RealtimeTrigger, Map<string, any>> = new Map();
+  private projectConfig: ProjectConfig | null = null;
 
   constructor(private port: number, private host: string) {
     this.eventProducers = [
@@ -19,6 +25,41 @@ export class FlowEngine {
       new CronEventProducer(),
       new WebSocketEventProducer()
     ];
+
+    // Initialize API client and SecretManager
+    const config = getConfig();
+    const apiClient = new ApiClient(config.backendUrl, config.workosClientId);
+
+    // Try to load project config
+    this.projectConfig = tryLoadProjectConfig();
+
+    // Get namespace ID from project config or environment variable
+    let namespaceId: string | undefined;
+
+    if (this.projectConfig) {
+      namespaceId = this.projectConfig.namespaceId;
+      console.log(`📋 Loaded project config: ${this.projectConfig.name}`);
+      if (this.projectConfig.workflowId) {
+        console.log(`   Workflow ID: ${this.projectConfig.workflowId}`);
+      }
+    } else {
+      // Fall back to environment variable
+      namespaceId = process.env.FLOWW_NAMESPACE_ID;
+      if (namespaceId) {
+        console.log('⚠️  No floww.yaml found, using FLOWW_NAMESPACE_ID from environment');
+        console.log('   Run "floww init" to create a project config file');
+      }
+    }
+
+    if (!namespaceId) {
+      throw new Error(
+        'No namespace ID found. Either:\n' +
+        '  1. Run "floww init" to create a floww.yaml file, or\n' +
+        '  2. Set the FLOWW_NAMESPACE_ID environment variable'
+      );
+    }
+
+    this.secretManager = new SecretManager(apiClient, namespaceId);
   }
 
   async load(filePath: string): Promise<Trigger[]> {

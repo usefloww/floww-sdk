@@ -12,6 +12,7 @@ import {
 } from './commands/config';
 import { setConfig } from './config/configUtils';
 import { deployCommand } from './commands/deploy';
+import { initCommand } from './commands/init';
 
 const program = new Command();
 
@@ -21,6 +22,15 @@ program
   .version('1.0.0')
   .option('--backend-url <url>', 'Backend API URL')
   .option('--workos-client-id <id>', 'WorkOS client ID');
+
+program
+  .command('init')
+  .description('Initialize a new Floww project')
+  .option('--force', 'Overwrite existing floww.json')
+  .option('--name <name>', 'Workflow name')
+  .option('--namespace <id>', 'Namespace ID')
+  .option('--description <desc>', 'Workflow description')
+  .action(initCommand);
 
 program
   .command('dev')

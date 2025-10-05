@@ -1,10 +1,5 @@
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
 import * as readline from 'readline';
-
-const CONFIG_DIR = path.join(os.homedir(), '.floww');
-const SECRETS_FILE = path.join(CONFIG_DIR, 'secrets.json');
+import { ApiClient } from '../api/client';
 
 export type SecretDefinition = {
   key: string;
@@ -15,83 +10,158 @@ export type SecretDefinition = {
 
 export type ProviderSecrets = Record<string, string>;
 
-// Structure: { "providerType:credentialName": { key: value } }
-// e.g., { "gitlab:work-account": { accessToken: "..." } }
-export type SecretsStore = Record<string, ProviderSecrets>;
+// Backend API response types
+interface SecretResponse {
+  id: string;
+  namespace_id: string;
+  name: string;
+  provider: string;
+  created_at: string;
+  updated_at: string;
+}
 
-// TODO: Implement this on top of the backend instead
+interface SecretWithValueResponse extends SecretResponse {
+  value: string;
+}
+
 export class SecretManager {
-  private secrets: SecretsStore;
+  private apiClient: ApiClient;
+  private namespaceId: string;
 
-  constructor() {
-    this.secrets = this.loadSecrets();
+  constructor(apiClient: ApiClient, namespaceId: string) {
+    this.apiClient = apiClient;
+    this.namespaceId = namespaceId;
   }
 
-  private loadSecrets(): SecretsStore {
-    if (!fs.existsSync(SECRETS_FILE)) {
-      return {};
+  /**
+   * Get a specific secret value from the backend
+   */
+  async getSecret(providerType: string, credentialName: string, key: string): Promise<string | undefined> {
+    const secretName = `${credentialName}:${key}`;
+
+    // First, list secrets to find the matching one
+    const response = await this.apiClient.apiCall<SecretResponse[]>(
+      `/secrets/namespace/${this.namespaceId}?provider=${encodeURIComponent(providerType)}&name=${encodeURIComponent(secretName)}`
+    );
+
+    if (!response.data || response.data.length === 0) {
+      return undefined;
     }
-    try {
-      const data = fs.readFileSync(SECRETS_FILE, 'utf-8');
-      return JSON.parse(data);
-    } catch (error) {
-      console.error('Failed to load secrets');
-      return {};
+
+    // Get the secret with its decrypted value
+    const secret = response.data[0];
+    const valueResponse = await this.apiClient.apiCall<SecretWithValueResponse>(
+      `/secrets/${secret.id}`
+    );
+
+    return valueResponse.data?.value;
+  }
+
+  /**
+   * Get all secrets for a provider credential
+   */
+  async getProviderSecrets(providerType: string, credentialName: string): Promise<ProviderSecrets | undefined> {
+    // List all secrets for this provider
+    const response = await this.apiClient.apiCall<SecretResponse[]>(
+      `/secrets/namespace/${this.namespaceId}?provider=${encodeURIComponent(providerType)}`
+    );
+
+    if (!response.data || response.data.length === 0) {
+      return undefined;
+    }
+
+    // Filter secrets that match the credential name pattern
+    const prefix = `${credentialName}:`;
+    const matchingSecrets = response.data.filter(s => s.name.startsWith(prefix));
+
+    if (matchingSecrets.length === 0) {
+      return undefined;
+    }
+
+    // Fetch all secret values
+    const secrets: ProviderSecrets = {};
+    for (const secret of matchingSecrets) {
+      const valueResponse = await this.apiClient.apiCall<SecretWithValueResponse>(
+        `/secrets/${secret.id}`
+      );
+
+      if (valueResponse.data?.value) {
+        // Extract the key from the name (remove "credentialName:" prefix)
+        const key = secret.name.substring(prefix.length);
+        secrets[key] = valueResponse.data.value;
+      }
+    }
+
+    return Object.keys(secrets).length > 0 ? secrets : undefined;
+  }
+
+  /**
+   * Set a specific secret value in the backend
+   */
+  async setSecret(providerType: string, credentialName: string, key: string, value: string): Promise<void> {
+    const secretName = `${credentialName}:${key}`;
+
+    // Check if secret already exists
+    const existing = await this.apiClient.apiCall<SecretResponse[]>(
+      `/secrets/namespace/${this.namespaceId}?provider=${encodeURIComponent(providerType)}&name=${encodeURIComponent(secretName)}`
+    );
+
+    if (existing.data && existing.data.length > 0) {
+      // Update existing secret
+      await this.apiClient.apiCall(
+        `/secrets/${existing.data[0].id}`,
+        {
+          method: 'PATCH',
+          body: { value }
+        }
+      );
+    } else {
+      // Create new secret
+      await this.apiClient.apiCall(
+        '/secrets/',
+        {
+          method: 'POST',
+          body: {
+            namespace_id: this.namespaceId,
+            name: secretName,
+            provider: providerType,
+            value
+          }
+        }
+      );
     }
   }
 
-  private saveSecrets(): void {
-    if (!fs.existsSync(CONFIG_DIR)) {
-      fs.mkdirSync(CONFIG_DIR, { recursive: true });
+  /**
+   * Set all secrets for a provider credential
+   */
+  async setProviderSecrets(providerType: string, credentialName: string, secrets: ProviderSecrets): Promise<void> {
+    // Set each secret individually
+    for (const [key, value] of Object.entries(secrets)) {
+      await this.setSecret(providerType, credentialName, key, value);
     }
-    fs.writeFileSync(SECRETS_FILE, JSON.stringify(this.secrets, null, 2));
-    fs.chmodSync(SECRETS_FILE, 0o600); // Secure permissions (owner read/write only)
   }
 
-  private getCredentialKey(providerType: string, credentialName: string): string {
-    return `${providerType}:${credentialName}`;
-  }
-
-  getSecret(providerType: string, credentialName: string, key: string): string | undefined {
-    const credentialKey = this.getCredentialKey(providerType, credentialName);
-    return this.secrets[credentialKey]?.[key];
-  }
-
-  getProviderSecrets(providerType: string, credentialName: string): ProviderSecrets | undefined {
-    const credentialKey = this.getCredentialKey(providerType, credentialName);
-    return this.secrets[credentialKey];
-  }
-
-  setSecret(providerType: string, credentialName: string, key: string, value: string): void {
-    const credentialKey = this.getCredentialKey(providerType, credentialName);
-    if (!this.secrets[credentialKey]) {
-      this.secrets[credentialKey] = {};
-    }
-    this.secrets[credentialKey][key] = value;
-    this.saveSecrets();
-  }
-
-  setProviderSecrets(providerType: string, credentialName: string, secrets: ProviderSecrets): void {
-    const credentialKey = this.getCredentialKey(providerType, credentialName);
-    this.secrets[credentialKey] = secrets;
-    this.saveSecrets();
-  }
-
-  hasProviderSecrets(providerType: string, credentialName: string, requiredKeys: string[]): boolean {
-    const credentialKey = this.getCredentialKey(providerType, credentialName);
-    const providerSecrets = this.secrets[credentialKey];
+  /**
+   * Check if provider has all required secrets
+   */
+  async hasProviderSecrets(providerType: string, credentialName: string, requiredKeys: string[]): Promise<boolean> {
+    const providerSecrets = await this.getProviderSecrets(providerType, credentialName);
     if (!providerSecrets) return false;
 
     return requiredKeys.every(key => providerSecrets[key] && providerSecrets[key].length > 0);
   }
 
+  /**
+   * Ensure provider has all required secrets, prompting if necessary
+   */
   async ensureProviderSecrets(
     providerType: string,
     credentialName: string,
     definitions: SecretDefinition[]
   ): Promise<ProviderSecrets> {
     const requiredKeys = definitions.map(d => d.key);
-    const hasSecrets = this.hasProviderSecrets(providerType, credentialName, requiredKeys);
+    const hasSecrets = await this.hasProviderSecrets(providerType, credentialName, requiredKeys);
 
     if (!hasSecrets) {
       // Trigger interactive setup
@@ -99,9 +169,12 @@ export class SecretManager {
     }
 
     // Load existing secrets
-    return this.getProviderSecrets(providerType, credentialName) || {};
+    return await this.getProviderSecrets(providerType, credentialName) || {};
   }
 
+  /**
+   * Interactively prompt for secrets
+   */
   async promptForSecrets(providerType: string, credentialName: string, definitions: SecretDefinition[]): Promise<ProviderSecrets> {
     // Clear screen and show header
     console.clear();
@@ -121,7 +194,7 @@ export class SecretManager {
 
     for (let i = 0; i < definitions.length; i++) {
       const def = definitions[i];
-      const existingValue = this.getSecret(providerType, credentialName, def.key);
+      const existingValue = await this.getSecret(providerType, credentialName, def.key);
 
       if (existingValue && !def.required) {
         secrets[def.key] = existingValue;
@@ -165,8 +238,8 @@ export class SecretManager {
 
     rl.close();
 
-    // Save the secrets
-    this.setProviderSecrets(providerType, credentialName, secrets);
+    // Save the secrets to backend
+    await this.setProviderSecrets(providerType, credentialName, secrets);
 
     console.log();
     console.log('═══════════════════════════════════════════════════════════');
@@ -177,14 +250,51 @@ export class SecretManager {
     return secrets;
   }
 
-  clearProviderSecrets(providerType: string, credentialName: string): void {
-    const credentialKey = this.getCredentialKey(providerType, credentialName);
-    delete this.secrets[credentialKey];
-    this.saveSecrets();
+  /**
+   * Clear all secrets for a provider credential
+   */
+  async clearProviderSecrets(providerType: string, credentialName: string): Promise<void> {
+    // List all secrets for this provider and credential
+    const response = await this.apiClient.apiCall<SecretResponse[]>(
+      `/secrets/namespace/${this.namespaceId}?provider=${encodeURIComponent(providerType)}`
+    );
+
+    if (!response.data || response.data.length === 0) {
+      return;
+    }
+
+    // Filter secrets that match the credential name pattern
+    const prefix = `${credentialName}:`;
+    const matchingSecrets = response.data.filter(s => s.name.startsWith(prefix));
+
+    // Delete each matching secret
+    for (const secret of matchingSecrets) {
+      await this.apiClient.apiCall(
+        `/secrets/${secret.id}`,
+        { method: 'DELETE' }
+      );
+    }
   }
 
-  clearAllSecrets(): void {
-    this.secrets = {};
-    this.saveSecrets();
+  /**
+   * Clear all secrets in the namespace
+   */
+  async clearAllSecrets(): Promise<void> {
+    // List all secrets in the namespace
+    const response = await this.apiClient.apiCall<SecretResponse[]>(
+      `/secrets/namespace/${this.namespaceId}`
+    );
+
+    if (!response.data || response.data.length === 0) {
+      return;
+    }
+
+    // Delete each secret
+    for (const secret of response.data) {
+      await this.apiClient.apiCall(
+        `/secrets/${secret.id}`,
+        { method: 'DELETE' }
+      );
+    }
   }
 }
