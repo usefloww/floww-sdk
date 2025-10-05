@@ -4,6 +4,7 @@ import { getFlowwConfigDir } from './xdg';
 import { FlowwConfig, CONFIG_SCHEMA, ConfigKey, ConfigWithSources, ConfigSource } from './configTypes';
 
 const CONFIG_FILE = 'config.json';
+let inMemoryConfig: FlowwConfig | null = null;
 
 function getConfigFilePath(): string {
   return path.join(getFlowwConfigDir(), CONFIG_FILE);
@@ -16,7 +17,35 @@ function ensureConfigDir(): void {
   }
 }
 
-function loadConfigFile(): Partial<FlowwConfig> {
+export function getConfig(): FlowwConfig {
+  if (!inMemoryConfig) {
+    throw new Error('Config not initialized. Call setConfig() first.');
+  }
+  return inMemoryConfig;
+}
+
+export function setConfig(cliOptions: Partial<FlowwConfig> = {}): void {
+  const fileConfig = getStoredConfig();
+  const config = {} as FlowwConfig;
+
+  for (const key of Object.keys(CONFIG_SCHEMA) as ConfigKey[]) {
+    const schema = CONFIG_SCHEMA[key];
+
+    if (cliOptions[key]) {
+      config[key] = cliOptions[key];
+    } else if (process.env[schema.envVar]) {
+      config[key] = process.env[schema.envVar]!;
+    } else if (fileConfig[key]) {
+      config[key] = fileConfig[key];
+    } else {
+      config[key] = schema.default;
+    }
+  }
+
+  inMemoryConfig = config;
+}
+
+export function getStoredConfig(): Partial<FlowwConfig> {
   const configPath = getConfigFilePath();
   if (!fs.existsSync(configPath)) {
     return {};
@@ -31,63 +60,32 @@ function loadConfigFile(): Partial<FlowwConfig> {
   }
 }
 
-function saveConfigFile(config: Partial<FlowwConfig>): void {
+export function setStoredConfig(config: Partial<FlowwConfig>): void {
   ensureConfigDir();
   const configPath = getConfigFilePath();
 
   try {
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-    fs.chmodSync(configPath, 0o600); // Secure permissions
+    fs.chmodSync(configPath, 0o600);
   } catch (error) {
     console.error('Failed to save config file:', error);
     throw error;
   }
 }
 
-// Priority: CLI > ENV > CONFIG FILE > DEFAULT
-export function getConfig(cliOptions: Partial<FlowwConfig> = {}): FlowwConfig {
-  const fileConfig = loadConfigFile();
-  const config = {} as FlowwConfig;
-
-  // Apply each config key in priority order
-  for (const key of Object.keys(CONFIG_SCHEMA) as ConfigKey[]) {
-    const schema = CONFIG_SCHEMA[key];
-
-    // 1. CLI options (highest priority)
-    if (cliOptions[key]) {
-      config[key] = cliOptions[key];
-      continue;
-    }
-
-    // 2. Environment variables
-    if (process.env[schema.envVar]) {
-      config[key] = process.env[schema.envVar]!;
-      continue;
-    }
-
-    // 3. Config file
-    if (fileConfig[key]) {
-      config[key] = fileConfig[key];
-      continue;
-    }
-
-    // 4. Default value
-    config[key] = schema.default;
-  }
-
-  return config;
+export function getConfigValue(key: ConfigKey): string {
+  return getConfig()[key];
 }
 
-export function getConfigWithSources(cliOptions: Partial<FlowwConfig> = {}): ConfigWithSources {
-  const fileConfig = loadConfigFile();
+export function getConfigWithSources(): ConfigWithSources {
+  const fileConfig = getStoredConfig();
   const configWithSources = {} as ConfigWithSources;
 
   for (const key of Object.keys(CONFIG_SCHEMA) as ConfigKey[]) {
     const schema = CONFIG_SCHEMA[key];
     let source: ConfigSource['source'] = 'default';
-    let value = schema.default;
+    let value: string = schema.default;
 
-    // Check each source in reverse priority order
     if (fileConfig[key]) {
       source = 'config';
       value = fileConfig[key];
@@ -98,25 +96,16 @@ export function getConfigWithSources(cliOptions: Partial<FlowwConfig> = {}): Con
       value = process.env[schema.envVar]!;
     }
 
-    if (cliOptions[key]) {
-      source = 'cli';
-      value = cliOptions[key];
-    }
-
     configWithSources[key] = { source, value };
   }
 
   return configWithSources;
 }
 
-export function setConfig(key: ConfigKey, value: string): void {
-  const currentConfig = loadConfigFile();
+export function updateStoredConfig(key: ConfigKey, value: string): void {
+  const currentConfig = getStoredConfig();
   currentConfig[key] = value;
-  saveConfigFile(currentConfig);
-}
-
-export function getConfigValue(key: ConfigKey, cliOptions: Partial<FlowwConfig> = {}): string {
-  return getConfig(cliOptions)[key];
+  setStoredConfig(currentConfig);
 }
 
 export function resetConfig(): void {

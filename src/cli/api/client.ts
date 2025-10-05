@@ -1,7 +1,5 @@
 import fetch from 'node-fetch';
-import { loadTokens, saveTokens } from '../auth/authUtils';
-import { CLIAuth } from '../auth/auth';
-import { StoredAuth } from '../auth/authTypes';
+import { getValidAuth } from '../auth/tokenUtils';
 import { getConfig } from '../config/configUtils';
 import { FlowwConfig } from '../config/configTypes';
 
@@ -36,7 +34,7 @@ export class ApiClient {
     const { method = 'GET', body, headers = {} } = options;
 
     // Get authentication token
-    const auth = await this.getValidAuth();
+    const auth = await getValidAuth();
     if (!auth) {
       return {
         status: 401,
@@ -52,9 +50,6 @@ export class ApiClient {
       ...headers
     };
 
-    console.log(requestHeaders);
-    console.log(url);
-
     try {
       const response = await fetch(url, {
         method,
@@ -66,8 +61,8 @@ export class ApiClient {
 
       if (response.status === 401) {
         // Token might be expired, try to refresh
-        const refreshedAuth = await this.refreshToken(auth);
-        if (refreshedAuth) {
+        const refreshedAuth = await getValidAuth();
+        if (refreshedAuth && refreshedAuth.accessToken !== auth.accessToken) {
           // Retry the request with new token
           requestHeaders['Authorization'] = `Bearer ${refreshedAuth.accessToken}`;
           const retryResponse = await fetch(url, {
@@ -104,53 +99,13 @@ export class ApiClient {
     }
   }
 
-  /**
-   * Get valid authentication, refreshing if necessary
-   */
-  private async getValidAuth(): Promise<StoredAuth | null> {
-    const auth = loadTokens();
-    if (!auth) {
-      return null;
-    }
-
-    // Check if token is expired (with 5 minute buffer)
-    const isExpired = Date.now() >= (auth.expiresAt - 5 * 60 * 1000);
-
-    if (isExpired && auth.refreshToken) {
-      return await this.refreshToken(auth);
-    }
-
-    return auth;
-  }
-
-  /**
-   * Refresh the access token using refresh token
-   */
-  private async refreshToken(auth: StoredAuth): Promise<StoredAuth | null> {
-    if (!auth.refreshToken) {
-      return null;
-    }
-
-    try {
-      const cliAuth = new CLIAuth(this.clientId);
-      const refreshedAuth = await cliAuth.refreshAccessToken(auth.refreshToken);
-
-      // Save the new tokens
-      saveTokens(refreshedAuth);
-
-      return refreshedAuth;
-    } catch (error) {
-      console.error('Failed to refresh token:', error);
-      return null;
-    }
-  }
 }
 
 /**
  * Create API client with config system
  */
-function createApiClient(cliOptions: Partial<FlowwConfig> = {}): ApiClient {
-  const config = getConfig(cliOptions);
+function createApiClient(): ApiClient {
+  const config = getConfig();
   return new ApiClient(config.backendUrl, config.workosClientId);
 }
 
@@ -167,4 +122,10 @@ export async function apiCall<T = any>(
 }
 
 // Default client instance (backwards compatibility)
-export const defaultApiClient = createApiClient();
+let _defaultApiClient: ApiClient | undefined;
+export const defaultApiClient = (): ApiClient => {
+  if (!_defaultApiClient) {
+    _defaultApiClient = createApiClient();
+  }
+  return _defaultApiClient;
+};

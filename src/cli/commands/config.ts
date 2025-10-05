@@ -1,7 +1,7 @@
 import {
   getConfig,
   getConfigWithSources,
-  setConfig,
+  updateStoredConfig,
   resetConfig,
   getConfigPath,
   configExists,
@@ -27,7 +27,7 @@ export async function configSetCommand(key: string, value: string) {
   }
 
   try {
-    setConfig(configKey, value);
+    updateStoredConfig(configKey, value);
     console.log(`✅ Set ${key} = ${value}`);
   } catch (error) {
     console.error(`❌ Failed to set config: ${error}`);

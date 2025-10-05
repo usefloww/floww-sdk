@@ -2,6 +2,7 @@ export interface FlowwConfig {
   workosClientId: string;
   backendUrl: string;
   workosApiUrl: string;
+  websocketUrl: string;
 }
 
 export interface ConfigSource {
@@ -13,6 +14,7 @@ export interface ConfigWithSources {
   workosClientId: ConfigSource;
   backendUrl: ConfigSource;
   workosApiUrl: ConfigSource;
+  websocketUrl: ConfigSource;
 }
 
 interface ConfigField {
@@ -31,6 +33,11 @@ export const CONFIG_SCHEMA = {
     default: "https://api.flow.toondn.app",
     envVar: "FLOWW_BACKEND_URL",
     cliKey: "backend-url",
+  },
+  websocketUrl: {
+    default: "ws://ws.flow.toondn.app/connection/websocket",
+    envVar: "FLOWW_WEBSOCKET_URL",
+    cliKey: "websocket-url",
   },
   workosApiUrl: {
     default: "https://api.workos.com",

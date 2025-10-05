@@ -65,6 +65,8 @@ export interface CronTrigger extends Trigger<CronEvent, CronContext> {
   type: 'cron';
   handler: Handler<CronEvent, CronContext>;
   expression: string;
+  setup?: (ctx: CronSetupContext) => Promise<void> | void;
+  teardown?: (ctx: CronTeardownContext) => Promise<void> | void;
 }
 
 export type CronSetupContext = {
