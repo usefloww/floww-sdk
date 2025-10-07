@@ -12,7 +12,7 @@ export default defineConfig([
   // CLI build
   {
     entry: { cli: 'src/cli/index.ts' },
-    format: ['cjs'],
+    format: ['esm'],
     dts: true,
     outDir: 'dist',
     clean: false,
@@ -23,6 +23,9 @@ export default defineConfig([
       'node-cron',
       'chokidar',
       'pino-pretty',
+      'node-fetch',
+      'open',
+      'inquirer',
     ],
     noExternal: [],
   },

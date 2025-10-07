@@ -1,5 +1,6 @@
 import * as vm from "vm";
 import ts from "typescript";
+import { createRequire } from "module";
 import { VirtualFileSystem } from "./VirtualFileSystem";
 
 export class ModuleSystem {
@@ -14,7 +15,9 @@ export class ModuleSystem {
     return (specifier: string) => {
       if (!specifier.startsWith(".") && !specifier.startsWith("/")) {
         try {
-          return require(specifier);
+          // Try to load as external module
+          const req = createRequire(process.cwd() + '/package.json');
+          return req(specifier);
         } catch (e) {
           // Not a built-in, try user modules
         }

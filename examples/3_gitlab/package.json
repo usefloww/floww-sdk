@@ -6,7 +6,7 @@
     "dev": "floww dev main.ts"
   },
   "dependencies": {
-    "@DeveloperFlows/floww-sdk": "file:../.."
+    "@DeveloperFlows/floww-sdk": "workspace:*"
   },
   "devDependencies": {
     "tsx": "^4.19.2"

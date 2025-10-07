@@ -20,7 +20,7 @@ export class ApiClient {
   private clientId: string;
 
   constructor(baseUrl: string, clientId: string) {
-    this.baseUrl = baseUrl.replace(/\/$/, ''); // Remove trailing slash
+    this.baseUrl = baseUrl.replace(/\/$/, '') + '/api'; // Remove trailing slash
     this.clientId = clientId;
   }
 
@@ -49,6 +49,7 @@ export class ApiClient {
       'Authorization': `Bearer ${auth.accessToken}`,
       ...headers
     };
+    console.log(url)
 
     try {
       const response = await fetch(url, {

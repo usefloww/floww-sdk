@@ -29,6 +29,7 @@ export abstract class BaseProvider implements Provider {
     }
 
     configure(secrets: Record<string, string>): void {
+        console.log("Secrets", secrets)
         this.secrets = secrets;
     }
 

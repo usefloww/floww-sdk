@@ -9,14 +9,14 @@ export const gitlab = new Gitlab({
     baseUrl: 'https://gitlab.company.com' // Custom GitLab instance
 });
 
-// Simple string credential (shorthand)
-export const gitlabPersonal = new Gitlab('personal');
-
-// Config with timezone setting
-export const googleCalendar = new GoogleCalendar({
-    credential: 'default',
-    timezone: 'America/New_York'
-});
+// // Simple string credential (shorthand)
+// export const gitlabPersonal = new Gitlab('personal');
+//
+// // Config with timezone setting
+// export const googleCalendar = new GoogleCalendar({
+//     credential: 'default',
+//     timezone: 'America/New_York'
+// });
 
 type CustomBody = {
     message: string;
@@ -43,17 +43,17 @@ export default [
             console.log('User:', event.body.user.username);
         }
     }),
-    gitlabPersonal.triggers.onMergeRequestComment({
-        projectId: '67890',
-        handler: (ctx, event) => {
-            console.log('[Personal Account] GitLab MR comment:', event.body.object_attributes.note);
-            console.log('User:', event.body.user.username);
-        }
-    }),
-    googleCalendar.triggers.onEventCreate({
-        calendarId: 'primary',
-        handler: (ctx, event) => {
-            console.log('Calendar event created:', event.body.summary);
-        }
-    })
+    // gitlabPersonal.triggers.onMergeRequestComment({
+    //     projectId: '67890',
+    //     handler: (ctx, event) => {
+    //         console.log('[Personal Account] GitLab MR comment:', event.body.object_attributes.note);
+    //         console.log('User:', event.body.user.username);
+    //     }
+    // }),
+    // googleCalendar.triggers.onEventCreate({
+    //     calendarId: 'primary',
+    //     handler: (ctx, event) => {
+    //         console.log('Calendar event created:', event.body.summary);
+    //     }
+    // })
 ]

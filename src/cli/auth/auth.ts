@@ -44,7 +44,14 @@ export class CLIAuth {
     console.log(`👤 Logged in as: ${tokens.user.email}\n`);
 
     // Calculate expiration time
-    const expiresAt = Date.now() + tokens.expires_in * 1000;
+    // WorkOS tokens typically expire in 1800 seconds (30 minutes)
+    const expiresInSeconds = tokens.expires_in || 1800; // Default to 30 min if not provided
+    const expiresAt = Date.now() + expiresInSeconds * 1000;
+
+    // Debug logging
+    if (!tokens.expires_in) {
+      console.warn('⚠️  Token response missing expires_in, using default 30 minutes');
+    }
 
     return {
       accessToken: tokens.access_token,
@@ -151,7 +158,12 @@ export class CLIAuth {
     }
 
     const tokens = await response.json() as TokenResponse;
-    const expiresAt = Date.now() + tokens.expires_in * 1000;
+    const expiresInSeconds = tokens.expires_in || 1800; // Default to 30 min if not provided
+    const expiresAt = Date.now() + expiresInSeconds * 1000;
+
+    if (!tokens.expires_in) {
+      console.warn('⚠️  Token refresh response missing expires_in, using default 30 minutes');
+    }
 
     return {
       accessToken: tokens.access_token,

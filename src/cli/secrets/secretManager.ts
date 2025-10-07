@@ -1,4 +1,4 @@
-import * as readline from 'readline';
+import inquirer from 'inquirer';
 import { ApiClient } from '../api/client';
 
 export type SecretDefinition = {
@@ -44,7 +44,12 @@ export class SecretManager {
       `/secrets/namespace/${this.namespaceId}?provider=${encodeURIComponent(providerType)}&name=${encodeURIComponent(secretName)}`
     );
 
-    if (!response.data || response.data.length === 0) {
+    // 404 Not Found is okay - it just means no secrets exist yet
+    if (response.error && response.status !== 404) {
+      throw new Error(`Failed to get secret: ${response.error}`);
+    }
+
+    if (!response.data || !Array.isArray(response.data) || response.data.length === 0) {
       return undefined;
     }
 
@@ -66,7 +71,12 @@ export class SecretManager {
       `/secrets/namespace/${this.namespaceId}?provider=${encodeURIComponent(providerType)}`
     );
 
-    if (!response.data || response.data.length === 0) {
+    // 404 Not Found is okay - it just means no secrets exist yet
+    if (response.error && response.status !== 404) {
+      throw new Error(`Failed to get provider secrets: ${response.error}`);
+    }
+
+    if (!response.data || !Array.isArray(response.data) || response.data.length === 0) {
       return undefined;
     }
 
@@ -106,18 +116,27 @@ export class SecretManager {
       `/secrets/namespace/${this.namespaceId}?provider=${encodeURIComponent(providerType)}&name=${encodeURIComponent(secretName)}`
     );
 
-    if (existing.data && existing.data.length > 0) {
+    // 404 Not Found is okay - it just means no secrets exist yet
+    if (existing.error && existing.status !== 404) {
+      throw new Error(`Failed to check existing secret: ${existing.error}`);
+    }
+
+    if (existing.data && Array.isArray(existing.data) && existing.data.length > 0) {
       // Update existing secret
-      await this.apiClient.apiCall(
+      const updateResponse = await this.apiClient.apiCall(
         `/secrets/${existing.data[0].id}`,
         {
           method: 'PATCH',
           body: { value }
         }
       );
+
+      if (updateResponse.error) {
+        throw new Error(`Failed to update secret: ${updateResponse.error}`);
+      }
     } else {
       // Create new secret
-      await this.apiClient.apiCall(
+      const createResponse = await this.apiClient.apiCall(
         '/secrets/',
         {
           method: 'POST',
@@ -129,6 +148,10 @@ export class SecretManager {
           }
         }
       );
+
+      if (createResponse.error) {
+        throw new Error(`Failed to create secret: ${createResponse.error}`);
+      }
     }
   }
 
@@ -185,58 +208,57 @@ export class SecretManager {
     console.log(`Setting up credential: "${credentialName}"`);
     console.log();
 
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout,
-    });
-
     const secrets: ProviderSecrets = {};
 
-    for (let i = 0; i < definitions.length; i++) {
-      const def = definitions[i];
+    // Build inquirer prompts
+    const prompts = [];
+    for (const def of definitions) {
       const existingValue = await this.getSecret(providerType, credentialName, def.key);
 
+      // Skip if already exists and not required
       if (existingValue && !def.required) {
         secrets[def.key] = existingValue;
         continue;
       }
 
-      // Show progress
-      console.log(`\n[${i + 1}/${definitions.length}] ${def.label}`);
-
-      if (def.required) {
-        console.log('    (required)');
-      } else {
-        console.log('    (optional)');
-      }
-
-      const prompt = existingValue
-        ? `\n    Enter value [press enter to keep existing]: `
-        : `\n    Enter value: `;
-
-      const value = await new Promise<string>((resolve) => {
-        rl.question(prompt, (answer) => {
-          resolve(answer.trim());
-        });
+      prompts.push({
+        type: def.type === 'password' ? 'password' : 'input',
+        name: def.key,
+        message: def.label,
+        default: existingValue || undefined,
+        validate: (input: string) => {
+          if (def.required && !input.trim()) {
+            return `${def.label} is required`;
+          }
+          return true;
+        },
+        transformer: (input: string) => {
+          // Show if existing value is being kept
+          if (!input && existingValue) {
+            return '(keeping existing value)';
+          }
+          return input;
+        }
       });
-
-      if (value) {
-        secrets[def.key] = value;
-        console.log(`    ✓ Saved`);
-      } else if (existingValue) {
-        secrets[def.key] = existingValue;
-        console.log(`    ✓ Kept existing value`);
-      } else if (def.required) {
-        console.log();
-        console.error(`    ❌ ${def.label} is required`);
-        rl.close();
-        process.exit(1);
-      } else {
-        console.log(`    ⊘ Skipped`);
-      }
     }
 
-    rl.close();
+    // Prompt user for all secrets
+    if (prompts.length > 0) {
+      const answers = await inquirer.prompt(prompts);
+
+      // Merge answers with existing secrets
+      for (const [key, value] of Object.entries(answers)) {
+        if (value) {
+          secrets[key] = value as string;
+        } else {
+          // If no value provided, use existing value
+          const existingValue = await this.getSecret(providerType, credentialName, key);
+          if (existingValue) {
+            secrets[key] = existingValue;
+          }
+        }
+      }
+    }
 
     // Save the secrets to backend
     await this.setProviderSecrets(providerType, credentialName, secrets);

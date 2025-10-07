@@ -20,8 +20,9 @@ export async function getValidAuth(): Promise<StoredAuth | null> {
     return null;
   }
 
-  // Check if token is expired (with 5 minute buffer)
-  const isExpired = Date.now() >= (auth.expiresAt - 5 * 60 * 1000);
+  // Check if token is expired or will expire soon (with 10 minute buffer for safety)
+  const bufferMs = 10 * 60 * 1000; // 10 minutes
+  const isExpired = Date.now() >= (auth.expiresAt - bufferMs);
 
   if (isExpired && auth.refreshToken) {
     return await refreshToken(auth);

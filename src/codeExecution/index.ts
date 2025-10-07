@@ -10,22 +10,49 @@ export interface ExecuteUserProjectOptions {
   entryPoint: string;
 }
 
+async function walkDirectory(
+  dir: string,
+  baseDir: string,
+  excludeDirs: string[],
+  filesMap: Record<string, string>
+): Promise<void> {
+  const entries = await fs.readdir(dir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    // Skip excluded directories
+    if (entry.isDirectory() && excludeDirs.includes(entry.name)) {
+      continue;
+    }
+
+    const fullPath = path.join(dir, entry.name);
+    const relativePath = path.relative(baseDir, fullPath);
+
+    if (entry.isSymbolicLink()) {
+      // Skip symlinks to avoid infinite loops
+      continue;
+    } else if (entry.isDirectory()) {
+      // Recursively walk subdirectories
+      await walkDirectory(fullPath, baseDir, excludeDirs, filesMap);
+    } else if (entry.isFile()) {
+      // Read file contents
+      const fileContent = await fs.readFile(fullPath, 'utf8');
+      filesMap[relativePath] = fileContent;
+    }
+  }
+}
+
 export async function getUserProject(
   filePath: string,
   entryPoint: string
 ): Promise<ExecuteUserProjectOptions> {
 
-
-  // Get all files in the directory
-  const files = await fs.readdir(process.cwd(), {recursive: true});
-
   const filesMap: Record<string, string> = {};
 
-  await Promise.all(files.map(async (file) => {
-    const filePath = path.join(process.cwd(), file);
-    const fileContent = await fs.readFile(filePath, 'utf8');
-    filesMap[file] = fileContent;
-  }));
+  // Directories to exclude
+  const excludeDirs = ['node_modules', '.git', 'dist', 'build', '.next'];
+
+  // Walk directory tree, excluding specified directories and symlinks
+  await walkDirectory(process.cwd(), process.cwd(), excludeDirs, filesMap);
 
   return {
     files: filesMap,
