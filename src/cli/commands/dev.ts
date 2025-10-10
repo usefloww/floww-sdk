@@ -24,7 +24,6 @@ export async function devCommand(file: string | undefined, options: DevOptions) 
   }
 
   // Resolve to absolute path
-  const absolutePath = path.resolve(entrypoint);
 
   console.log(`\n🔧 Development Mode`);
   console.log(`📂 Watching: ${entrypoint}\n`);
@@ -33,12 +32,14 @@ export async function devCommand(file: string | undefined, options: DevOptions) 
 
   // Load and start triggers
   try {
-    await engine.load(absolutePath);
+    await engine.load(entrypoint);
     await engine.start();
   } catch (error) {
     console.error('Failed to start:', error);
     process.exit(1);
   }
+
+  const absolutePath = path.resolve(entrypoint);
 
   // Watch for file changes
   const watcher = chokidar.watch(absolutePath, {

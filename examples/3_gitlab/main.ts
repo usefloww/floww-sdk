@@ -39,8 +39,8 @@ export default [
     gitlab.triggers.onMergeRequestComment({
         projectId: '12345',
         handler: (ctx, event) => {
-            console.log('[Work Account] GitLab MR comment:', event.body.object_attributes.note);
-            console.log('User:', event.body.user.username);
+            // console.log('[Work Account] GitLab MR comment:', event.body.object_attributes.note);
+            // console.log('User:', event.body.user.username);
         }
     }),
     // gitlabPersonal.triggers.onMergeRequestComment({

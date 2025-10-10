@@ -3,10 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "floww dev main.ts"
-  },
-  "dependencies": {
-    "@DeveloperFlows/floww-sdk": "workspace:*"
+    "floww": "bun ../../src/cli/index.ts"
   },
   "devDependencies": {
     "tsx": "^4.19.2"
