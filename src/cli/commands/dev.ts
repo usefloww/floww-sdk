@@ -39,10 +39,8 @@ export async function devCommand(file: string | undefined, options: DevOptions) 
     process.exit(1);
   }
 
-  const absolutePath = path.resolve(entrypoint);
-
   // Watch for file changes
-  const watcher = chokidar.watch(absolutePath, {
+  const watcher = chokidar.watch(entrypoint, {
     persistent: true,
     ignoreInitial: true,
   });
@@ -50,7 +48,7 @@ export async function devCommand(file: string | undefined, options: DevOptions) 
   watcher.on('change', async (path) => {
     console.log(`\n📝 File changed: ${path}`);
     try {
-      await engine.reload(absolutePath);
+      await engine.reload(entrypoint);
     } catch (error) {
       console.error('Failed to reload:', error);
     }

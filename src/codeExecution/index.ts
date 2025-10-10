@@ -85,6 +85,7 @@ export async function executeUserProject(
       }
     }
 
+    console.log('filePath', filePath);
     const module = moduleSystem.loadModule(filePath);
 
     if (exportName && exportName !== "default") {
