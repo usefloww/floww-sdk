@@ -1,5 +1,6 @@
 import { VirtualFileSystem } from "./VirtualFileSystem";
 import { ModuleSystem } from "./ModuleSystem";
+import { DebugContext } from "../cli/debug/debugContext";
 import path from "path";
 import { pathToFileURL } from "url";
 import fs from 'fs/promises'
@@ -8,6 +9,8 @@ import fs from 'fs/promises'
 export interface ExecuteUserProjectOptions {
   files: Record<string, string>;
   entryPoint: string;
+  debugMode?: boolean;
+  debugContext?: DebugContext;
 }
 
 async function walkDirectory(
@@ -63,10 +66,10 @@ export async function getUserProject(
 export async function executeUserProject(
   options: ExecuteUserProjectOptions
 ): Promise<any> {
-  const { files, entryPoint } = options;
+  const { files, entryPoint, debugMode = false, debugContext } = options;
 
   const vfs = new VirtualFileSystem(files);
-  const moduleSystem = new ModuleSystem(vfs);
+  const moduleSystem = new ModuleSystem(vfs, debugMode, debugContext);
 
   try {
     const [fileAndExport, exportName] = entryPoint.includes(".")
@@ -85,7 +88,8 @@ export async function executeUserProject(
       }
     }
 
-    console.log('filePath', filePath);
+    // Remove noisy debug log
+    // console.log('filePath', filePath);
     const module = moduleSystem.loadModule(filePath);
 
     if (exportName && exportName !== "default") {
@@ -113,3 +117,5 @@ export async function executeUserProject(
 
 export { VirtualFileSystem } from "./VirtualFileSystem";
 export { ModuleSystem } from "./ModuleSystem";
+export { DebugContext } from "../cli/debug/debugContext";
+export type { TranspileResult } from "./ModuleSystem";

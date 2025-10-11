@@ -2,13 +2,28 @@ import * as vm from "vm";
 import ts from "typescript";
 import { createRequire } from "module";
 import { VirtualFileSystem } from "./VirtualFileSystem";
+import { DebugContext } from "../cli/debug/debugContext";
+
+export interface TranspileResult {
+  code: string;
+  sourceMap?: string;
+}
 
 export class ModuleSystem {
   private moduleCache = new Map<string, any>();
+  private sourceMaps = new Map<string, any>();
   private vfs: VirtualFileSystem;
+  private debugMode: boolean = false;
+  private debugContext?: DebugContext;
 
-  constructor(vfs: VirtualFileSystem) {
+  constructor(vfs: VirtualFileSystem, debugMode: boolean = false, debugContext?: DebugContext) {
     this.vfs = vfs;
+    this.debugMode = debugMode;
+    this.debugContext = debugContext;
+
+    if (this.debugContext) {
+      this.debugContext.setModuleSystem(this);
+    }
   }
 
   createRequire(fromFile: string) {
@@ -55,12 +70,35 @@ export class ModuleSystem {
       }
     }
 
-    const transpiledCode = this.transpile(source, filePath);
+    const transpileResult = this.transpile(source, filePath);
+    const transpiledCode = transpileResult.code;
+
+    // For inline source maps, extract and store them for debug context
+    if (this.debugMode && this.debugContext) {
+      // Try to extract source map from inline comment
+      const sourceMapMatch = transpiledCode.match(/\/\/# sourceMappingURL=data:application\/json;base64,(.+)$/m);
+      if (sourceMapMatch) {
+        try {
+          const sourceMapBase64 = sourceMapMatch[1];
+          const sourceMapJson = Buffer.from(sourceMapBase64, 'base64').toString('utf8');
+          const sourceMap = JSON.parse(sourceMapJson);
+
+          // Store the extracted source map
+          this.sourceMaps.set(filePath, sourceMap);
+          this.debugContext.registerSourceMap(filePath, sourceMap);
+
+          // Minimal debug logging
+          // console.log(`✅ [DEBUG] Source map extracted for ${filePath}`);
+        } catch (error) {
+          console.warn(`❌ Failed to extract inline source map for ${filePath}:`, error);
+        }
+      }
+    }
 
     const moduleExports = {};
     const moduleObject = { exports: moduleExports };
 
-    const context = {
+    const baseContext = {
       ...global,
       module: moduleObject,
       exports: moduleExports,
@@ -74,12 +112,31 @@ export class ModuleSystem {
       process,
     };
 
+    // Use debugContext to enhance the VM context if available
+    const context = this.debugContext
+      ? this.debugContext.createVMContext(baseContext, filePath)
+      : baseContext;
+
     try {
-      const script = new vm.Script(transpiledCode, {
-        filename: filePath,
+      // In debug mode, use the original file path for better debugger integration
+      const scriptOptions = {
+        filename: this.debugMode ? filePath : filePath,
         lineOffset: 0,
         columnOffset: 0,
-      });
+        produceCachedData: false,
+        // Enable enhanced debugging options if in debug mode
+        ...(this.debugMode && {
+          displayErrors: true,
+          breakOnSigint: true
+        })
+      };
+
+      // Remove noisy script creation logs
+      // if (this.debugMode) {
+      //   console.log(`🔧 [DEBUG] Creating script for ${filePath} with inline source maps`);
+      // }
+
+      const script = new vm.Script(transpiledCode, scriptOptions);
 
       script.runInNewContext(context);
 
@@ -87,20 +144,64 @@ export class ModuleSystem {
       this.moduleCache.set(filePath, result);
       return result;
     } catch (error) {
-      console.error(`Error executing module ${filePath}:`, error);
+      // Enhanced error reporting with debug context
+      if (this.debugContext) {
+        this.debugContext.reportError(error, {
+          filePath,
+          hasSourceMap: this.debugContext.hasSourceMap(filePath)
+        });
+      } else {
+        console.error(`Error executing module ${filePath}:`, error);
+      }
       throw error;
     }
   }
 
-  private transpile(source: string, _filename: string): string {
-    const result = ts.transpile(source, {
-      target: ts.ScriptTarget.ES2020,
-      module: ts.ModuleKind.CommonJS,
-      esModuleInterop: true,
-      allowSyntheticDefaultImports: true,
-      strict: false,
-    });
+  private transpile(source: string, filename: string): TranspileResult {
+    if (this.debugMode) {
+      // For debugging: use inline source maps for better debugger compatibility
+      const result = ts.transpileModule(source, {
+        compilerOptions: {
+          target: ts.ScriptTarget.ES2020,
+          module: ts.ModuleKind.CommonJS,
+          esModuleInterop: true,
+          allowSyntheticDefaultImports: true,
+          strict: false,
+          sourceMap: false,  // Disable external source map
+          inlineSourceMap: true,  // Use inline source map
+          inlineSources: true,    // Include source content
+          sourceRoot: '',         // Use relative paths
+        },
+        fileName: filename
+      });
 
-    return result;
+      return {
+        code: result.outputText,
+        sourceMap: undefined  // Inline source map is embedded in code
+      };
+    } else {
+      // Non-debug mode: no source maps
+      const result = ts.transpile(source, {
+        target: ts.ScriptTarget.ES2020,
+        module: ts.ModuleKind.CommonJS,
+        esModuleInterop: true,
+        allowSyntheticDefaultImports: true,
+        strict: false,
+      });
+
+      return {
+        code: result,
+        sourceMap: undefined
+      };
+    }
+  }
+
+  // Helper methods for debugging
+  getSourceMap(filePath: string): any {
+    return this.sourceMaps.get(filePath);
+  }
+
+  hasSourceMap(filePath: string): boolean {
+    return this.sourceMaps.has(filePath);
   }
 }

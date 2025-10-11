@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "floww": "bun ../../src/cli/index.ts"
+    "floww": "tsx ../../src/cli/index.ts"
   },
   "devDependencies": {
     "tsx": "^4.19.2"

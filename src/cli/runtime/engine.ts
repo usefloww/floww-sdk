@@ -1,6 +1,6 @@
 import { Trigger, WebhookTrigger, CronTrigger, RealtimeTrigger, Provider } from '../../common';
 import { SecretManager } from '../secrets/secretManager';
-import { executeUserProject, getUserProject } from '@/codeExecution';
+import { executeUserProject, getUserProject, DebugContext } from '@/codeExecution';
 import { EventStream, EventProducer } from './types';
 import { WebhookEventProducer } from './eventProducers/webhookEventProducer';
 import { CronEventProducer } from './eventProducers/cronEventProducer';
@@ -18,8 +18,20 @@ export class FlowEngine {
   private webhookMetadata: Map<WebhookTrigger, Map<string, any>> = new Map();
   private realtimeMetadata: Map<RealtimeTrigger, Map<string, any>> = new Map();
   private projectConfig: ProjectConfig | null = null;
+  private debugContext?: DebugContext;
+  private debugMode: boolean = false;
+  private debugPort: number = 9229;
 
-  constructor(private port: number, private host: string) {
+  constructor(private port: number, private host: string, debugMode: boolean = false, debugPort: number = 9229) {
+    this.debugMode = debugMode;
+    this.debugPort = debugPort;
+
+    // Initialize debug context if debug mode is enabled
+    if (this.debugMode) {
+      this.debugContext = new DebugContext();
+      this.debugContext.enableDebug(true, this.debugPort);
+    }
+
     this.eventProducers = [
       new WebhookEventProducer(port, host),
       new CronEventProducer(),
@@ -38,9 +50,12 @@ export class FlowEngine {
 
     if (this.projectConfig) {
       namespaceId = this.projectConfig.namespaceId;
-      console.log(`📋 Loaded project config: ${this.projectConfig.name}`);
-      if (this.projectConfig.workflowId) {
-        console.log(`   Workflow ID: ${this.projectConfig.workflowId}`);
+      // Only show project config in debug mode
+      if (this.debugMode) {
+        console.log(`📋 Loaded project config: ${this.projectConfig.name}`);
+        if (this.projectConfig.workflowId) {
+          console.log(`   Workflow ID: ${this.projectConfig.workflowId}`);
+        }
       }
     } else {
       // Fall back to environment variable
@@ -64,7 +79,11 @@ export class FlowEngine {
 
   async load(filePath: string): Promise<Trigger[]> {
     const userProject = await getUserProject(filePath, 'default');
-    const module = await executeUserProject(userProject);
+    const module = await executeUserProject({
+      ...userProject,
+      debugMode: this.debugMode,
+      debugContext: this.debugContext
+    });
     const triggers = module.default;
 
     if (!Array.isArray(triggers)) {
@@ -106,6 +125,12 @@ export class FlowEngine {
 
   private setupEventRouting(): void {
     this.eventStream.on('data', async (event) => {
+      const startTime = this.debugMode ? Date.now() : 0;
+
+      if (this.debugMode && this.debugContext) {
+        console.log(`🔄 Processing ${event.type} event`);
+      }
+
       try {
         if (event.trigger) {
           // Direct trigger provided (webhook/cron)
@@ -120,8 +145,21 @@ export class FlowEngine {
             }
           }
         }
+
+        if (this.debugMode && this.debugContext) {
+          const executionTime = Date.now() - startTime;
+          console.log(`✅ ${event.type} event completed in ${executionTime}ms`);
+        }
       } catch (error) {
-        console.error(`Error in ${event.type} handler:`, error);
+        if (this.debugContext) {
+          this.debugContext.reportError(error, {
+            eventType: event.type,
+            eventData: event.data,
+            triggerType: event.trigger?.type || 'unknown'
+          });
+        } else {
+          console.error(`Error in ${event.type} handler:`, error);
+        }
       }
     });
   }
@@ -145,18 +183,40 @@ export class FlowEngine {
   }
 
   async start() {
-    console.log(`\n🚀 Starting Flow Engine...`);
-    console.log(`📁 Loaded ${this.triggers.length} trigger(s)\n`);
+    // Combine starting and loaded info into one line
+    console.log(`🚀 Flow Engine running with ${this.triggers.length} trigger(s)${this.debugMode ? ` (debugging on port ${this.debugPort})` : ''}`);
+
+    // Remove verbose debug feature list - users know they enabled debug mode
 
     await this.promptForMissingSecrets();
+
+    // Start inspector if in debug mode
+    if (this.debugMode && this.debugContext) {
+      try {
+        await this.debugContext.startInspector();
+      } catch (error) {
+        console.warn('⚠️  Failed to start inspector:', error);
+        console.log('   Continuing without inspector integration');
+      }
+    }
+
     this.setupEventRouting();
     await this.updateProducers();
 
-    console.log(`\n✅ Flow Engine is running`);
+    // No need for additional "running" message since we already said it's running above
   }
 
   async stop() {
     console.log('\n🛑 Stopping Flow Engine...');
+
+    // Stop inspector if running
+    if (this.debugContext) {
+      try {
+        await this.debugContext.stopInspector();
+      } catch (error) {
+        console.warn('⚠️  Error stopping inspector:', error);
+      }
+    }
 
     for (const producer of this.eventProducers) {
       await producer.stop();
