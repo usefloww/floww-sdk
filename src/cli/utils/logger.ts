@@ -28,6 +28,9 @@ export const ICONS = {
 const isInteractive =
   process.stdout.isTTY && !process.env.CI && !process.env.FLOWW_LOG_FORMAT;
 
+// Debug mode detection
+const isDebugMode = process.env.FLOWW_DEBUG === '1' || process.env.FLOWW_DEBUG === 'true';
+
 export interface TaskStep {
   title: string;
   task: () => Promise<void>;
@@ -94,14 +97,37 @@ export class FlowwLogger {
    */
   error(message: string, details?: any): void {
     const fullMessage = `${ICONS.ERROR}  ${message}`;
+
+    if (isDebugMode && details instanceof Error) {
+      // In debug mode, show full stack trace
+      const debugMessage = `${fullMessage}\n\nFull stack trace:\n${details.stack || details.toString()}`;
+
+      if (isInteractive) {
+        log.error(debugMessage);
+      } else {
+        this._consola.error(debugMessage);
+      }
+      return;
+    }
+
     if (isInteractive) {
       log.error(fullMessage);
       if (details) {
-        log.error(JSON.stringify(details, null, 2));
+        if (details instanceof Error) {
+          // Show just the error message, not the full stack in non-debug mode
+          log.error(details.message);
+        } else {
+          log.error(JSON.stringify(details, null, 2));
+        }
       }
     } else {
       if (details) {
-        this._consola.error(fullMessage, details);
+        if (details instanceof Error) {
+          // In non-interactive mode, show more details but still controlled
+          this._consola.error(fullMessage, isDebugMode ? details : details.message);
+        } else {
+          this._consola.error(fullMessage, details);
+        }
       } else {
         this._consola.error(fullMessage);
       }
@@ -137,10 +163,18 @@ export class FlowwLogger {
 
       try {
         const result = await task();
-        s.stop(`${ICONS.SUCCESS} ${title}`);
+        if (typeof result == "string") {
+          s.stop(`${ICONS.SUCCESS} ${result}`);
+        } else {
+          s.stop(`${ICONS.SUCCESS} ${title}`);
+        }
         return result;
       } catch (error) {
         s.stop(`${ICONS.ERROR} ${title} failed`);
+        if (isDebugMode && error instanceof Error) {
+          console.error(`\nDebug: Full error details for "${title}":`);
+          console.error(error.stack || error.toString());
+        }
         throw error;
       }
     } else {
@@ -152,6 +186,10 @@ export class FlowwLogger {
         return result;
       } catch (error) {
         this.error(`${title} failed`, error);
+        if (isDebugMode && error instanceof Error) {
+          console.error(`\nDebug: Full error details for "${title}":`);
+          console.error(error.stack || error.toString());
+        }
         throw error;
       }
     }
@@ -286,7 +324,53 @@ export class FlowwLogger {
   get interactive() {
     return isInteractive;
   }
+
+  /**
+   * Check if running in debug mode
+   */
+  get debug() {
+    return isDebugMode;
+  }
+
+  /**
+   * Log debug information only when debug mode is enabled
+   */
+  debugInfo(message: string, details?: any): void {
+    if (!isDebugMode) return;
+
+    const fullMessage = `🐛 DEBUG: ${message}`;
+    if (isInteractive) {
+      log.info(fullMessage);
+      if (details) {
+        console.log(details);
+      }
+    } else {
+      if (details) {
+        this._consola.debug(fullMessage, details);
+      } else {
+        this._consola.debug(fullMessage);
+      }
+    }
+  }
 }
 
 // Export singleton instance
 export const logger = new FlowwLogger();
+
+// Setup global error handlers in debug mode
+if (isDebugMode) {
+  process.on('uncaughtException', (error) => {
+    console.error('\n🐛 DEBUG: Uncaught Exception:');
+    console.error(error.stack || error.toString());
+    process.exit(1);
+  });
+
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('\n🐛 DEBUG: Unhandled Promise Rejection at:', promise);
+    console.error('Reason:', reason);
+    if (reason instanceof Error) {
+      console.error('Stack:', reason.stack);
+    }
+    process.exit(1);
+  });
+}

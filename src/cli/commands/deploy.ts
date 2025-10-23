@@ -27,6 +27,7 @@ import {
 } from "../utils/dockerUtils";
 import { logger, ICONS } from "../utils/logger";
 import { selectOrCreateWorkflow } from "../utils/promptUtils";
+import { validateProvidersAvailable } from "../providers/index";
 
 const defaultDockerfileContent = `
 FROM base-floww
@@ -60,25 +61,23 @@ function ensureDockerfile(projectDir: string, projectConfig: any): string {
 }
 
 async function pollRuntimeUntilReady(runtimeId: string): Promise<void> {
-  await logger.task("Preparing runtime", async () => {
-    while (true) {
-      try {
-        const status = await getRuntimeStatus(runtimeId);
+  while (true) {
+    try {
+      const status = await getRuntimeStatus(runtimeId);
 
-        // Check final status
-        if (status.creation_status === "completed") {
-          return;
-        } else if (status.creation_status === "failed") {
-          throw new Error("Runtime creation failed");
-        }
-
-        // Wait 5 seconds before next poll
-        await new Promise((resolve) => setTimeout(resolve, 5000));
-      } catch (error) {
-        throw error;
+      // Check final status
+      if (status.creation_status === "completed") {
+        return;
+      } else if (status.creation_status === "failed") {
+        throw new Error("Runtime creation failed");
       }
+
+      // Wait 5 seconds before next poll
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+    } catch (error) {
+      throw error;
     }
-  });
+  }
 }
 
 async function selectWorkflow(): Promise<string> {
@@ -218,10 +217,22 @@ export async function deployCommand() {
     }
   }
 
-  // 2. Ensure Dockerfile exists
+  // 2. Validate providers are configured (non-interactive check for deploy)
+  const entrypoint = projectConfig.entrypoint || "main.ts";
+  const providerValidation = await logger.task("Validating providers", async () => {
+    return validateProvidersAvailable(entrypoint, 'triggers');
+  });
+
+  if (!providerValidation.valid) {
+    logger.error("Missing providers detected:", providerValidation.missing);
+    logger.tip('Run "floww dev" to set up missing providers interactively');
+    process.exit(1);
+  }
+
+  // 3. Ensure Dockerfile exists
   ensureDockerfile(projectDir, projectConfig);
 
-  // 3. Build Docker image
+  // 4. Build Docker image
   const buildResult = await logger.task("Building Docker image", async () => {
     return dockerBuildImage(projectConfig, projectDir);
   });
@@ -245,7 +256,7 @@ export async function deployCommand() {
     }
   }
 
-  // 4. Push images to registry (only if needed)
+  // 5. Push images to registry (only if needed)
   if (shouldPush) {
     await logger.task("Pushing image", async () => {
       const imageUri = `${pushData.registry_url}:${imageHash}`;
@@ -261,19 +272,22 @@ export async function deployCommand() {
     });
   }
 
-  // 5. Create runtime
-
-  const runtimeResult = await logger.task("Creating runtime", async () => {
+  // 6. Create and prepare runtime
+  const runtimeResult = await logger.task("Setting up runtime", async () => {
     try {
-      return await createRuntime({
+      const runtime = await createRuntime({
         config: {
           image_hash: imageHash,
         },
       });
+      await pollRuntimeUntilReady(runtime.id);
+      return runtime;
     } catch (error) {
       if (error instanceof RuntimeAlreadyExistsError) {
-        // Fetch the existing runtime status
-        return await getRuntimeStatus(error.runtimeId);
+        // Fetch the existing runtime status and wait for it to be ready
+        const runtime = await getRuntimeStatus(error.runtimeId);
+        await pollRuntimeUntilReady(runtime.id);
+        return runtime;
       } else {
         logger.error(
           "Failed to create runtime:",
@@ -283,20 +297,16 @@ export async function deployCommand() {
       }
     }
   });
-  // 6. Poll runtime status until completion
-  await pollRuntimeUntilReady(runtimeResult.id);
 
   // 7. Read project files and create workflow deployment
-  const entrypoint = projectConfig.entrypoint || "main.ts";
   const userCode = await readProjectFiles(projectDir, entrypoint);
 
-  await logger.task("Deploying", async () => {
-    return await createWorkflowDeployment({
+  await logger.task("Deploying workflow", async () => {
+    return "Deployed workflow";
+    await createWorkflowDeployment({
       workflow_id: projectConfig.workflowId!,
       runtime_id: runtimeResult.id,
       code: userCode,
     });
   });
-
-  logger.success("Deploy completed successfully!");
 }

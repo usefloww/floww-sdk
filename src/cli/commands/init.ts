@@ -103,10 +103,7 @@ export async function initCommand(
 
     return workflowId;
   } catch (error) {
-    logger.error(
-      "Failed to initialize project:",
-      error instanceof Error ? error.message : error
-    );
+    logger.error("Failed to initialize project", error);
     if (options.silent) {
       throw error;
     }

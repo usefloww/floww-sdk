@@ -114,8 +114,8 @@ export async function fetchNamespaces(): Promise<Namespace[]> {
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}: ${await response.text()}`);
   }
-  const data = (await response.json()) as { namespaces: Namespace[] };
-  return data.namespaces;
+  const data = (await response.json()) as { results: Namespace[] };
+  return data.results;
 }
 
 // Workflow API methods
@@ -124,8 +124,8 @@ export async function fetchWorkflows(): Promise<Workflow[]> {
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}: ${await response.text()}`);
   }
-  const data = (await response.json()) as { workflows: Workflow[] };
-  return data.workflows;
+  const data = (await response.json()) as { results: Workflow[] };
+  return data.results;
 }
 
 export async function fetchWorkflow(workflowId: string): Promise<Workflow> {
@@ -305,7 +305,96 @@ export async function listWorkflowDeployments(
     throw new Error(`HTTP ${response.status}: ${await response.text()}`);
   }
   const data = (await response.json()) as {
-    deployments: WorkflowDeploymentResponse[];
+    results: WorkflowDeploymentResponse[];
   };
-  return data.deployments;
+  return data.results;
+}
+
+// Provider API types and methods
+export interface ProviderSetupStep {
+  type: string;
+  label: string;
+  field_name: string;
+  required: boolean;
+  description?: string;
+  placeholder?: string;
+  default_value?: string;
+}
+
+export interface ProviderType {
+  provider_type: string;
+  setup_steps: ProviderSetupStep[];
+}
+
+export interface Provider {
+  id: string;
+  namespace_id: string;
+  type: string;
+  alias: string;
+  config: Record<string, any>;
+}
+
+export interface ProviderCreateRequest {
+  namespace_id: string;
+  type: string;
+  alias: string;
+  config: Record<string, any>;
+}
+
+export interface ProviderUpdateRequest {
+  type?: string;
+  alias?: string;
+  config?: Record<string, any>;
+}
+
+// Provider API methods
+export async function fetchProviders(): Promise<Provider[]> {
+  const response = await makeApiCall("/providers");
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+  }
+  const data = (await response.json()) as { results: Provider[] };
+  return data.results;
+}
+
+export async function fetchProviderType(providerType: string): Promise<ProviderType> {
+  const response = await makeApiCall(`/provider_types/${providerType}`);
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+  }
+  return (await response.json()) as ProviderType;
+}
+
+export async function createProvider(providerData: ProviderCreateRequest): Promise<Provider> {
+  const response = await makeApiCall("/providers", {
+    method: "POST",
+    body: JSON.stringify(providerData),
+  });
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+  }
+  return (await response.json()) as Provider;
+}
+
+export async function updateProvider(
+  providerId: string,
+  updateData: ProviderUpdateRequest
+): Promise<Provider> {
+  const response = await makeApiCall(`/providers/${providerId}`, {
+    method: "PATCH",
+    body: JSON.stringify(updateData),
+  });
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+  }
+  return (await response.json()) as Provider;
+}
+
+export async function deleteProvider(providerId: string): Promise<void> {
+  const response = await makeApiCall(`/providers/${providerId}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+  }
 }

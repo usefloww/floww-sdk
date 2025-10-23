@@ -3,6 +3,7 @@ import { FlowEngine } from "../runtime/engine";
 import { loadProjectConfig, hasProjectConfig } from "../config/projectConfig";
 import path from "path";
 import { logger } from "../utils/logger";
+import { ensureProvidersAvailable } from "../providers/index";
 
 interface DevOptions {
   port: string;
@@ -64,6 +65,19 @@ export async function devCommand(
   }
 
   const engine = new FlowEngine(port, host, debugMode, debugPort);
+
+  // Check and setup providers before loading triggers
+  try {
+    await logger.task("Checking providers", async () => {
+      const result = await ensureProvidersAvailable(entrypoint, 'triggers');
+      if (!result.success) {
+        throw new Error('Provider setup failed');
+      }
+    });
+  } catch (error) {
+    logger.error("Provider setup failed:", error);
+    process.exit(1);
+  }
 
   // Load and start triggers
   try {

@@ -13,6 +13,7 @@ import { setConfig } from './config/configUtils';
 import { deployCommand } from './commands/deploy';
 import { initCommand } from './commands/init';
 import { listWorkflowsCommand, listNamespacesCommand, listDeploymentsCommand } from './crud/list';
+import { manageProviders } from './providers/index';
 
 const program = new Command();
 
@@ -116,6 +117,18 @@ listCmd
   .option('-w, --workflow <id>', 'Filter by workflow ID')
   .action(async (options) => {
     await listDeploymentsCommand(options.workflow);
+  });
+
+// Provider management commands
+// program
+//   .command('manage')
+//   .description('Manage resources');
+
+program
+  .command('manage providers')
+  .description('Manage providers interactively')
+  .action(async () => {
+    await manageProviders();
   });
 
 // Initialize config with CLI options before parsing commands

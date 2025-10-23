@@ -1,4 +1,10 @@
-export type Handler<TEvent = any, TContext = any> = (ctx: TContext, event: TEvent) => void | Promise<void>;
+import { Gitlab } from "./providers/gitlab";
+import { Slack } from "./providers/slack";
+
+export type Handler<TEvent = any, TContext = any> = (
+  ctx: TContext,
+  event: TEvent
+) => void | Promise<void>;
 
 // Base trigger interface
 export interface Trigger<TEvent = any, TContext = any> {
@@ -13,19 +19,20 @@ export type WebhookEvent<TBody = any> = {
   query: Record<string, string>;
   method: string;
   path: string;
-}
+};
 
 export type WebhookContext = {
   // Add webhook-specific context utilities here
   // e.g., respond, setStatus, etc.
-}
+};
 
 // Webhook-specific trigger
-export interface WebhookTrigger<TBody = any> extends Trigger<WebhookEvent<TBody>, WebhookContext> {
-  type: 'webhook';
+export interface WebhookTrigger<TBody = any>
+  extends Trigger<WebhookEvent<TBody>, WebhookContext> {
+  type: "webhook";
   handler: Handler<WebhookEvent<TBody>, WebhookContext>;
   path?: string;
-  method?: 'POST' | 'GET' | 'PUT' | 'DELETE';
+  method?: "POST" | "GET" | "PUT" | "DELETE";
   validation?: (event: WebhookEvent<TBody>) => boolean | Promise<boolean>;
   setup?: (ctx: WebhookSetupContext) => Promise<void> | void;
   teardown?: (ctx: WebhookTeardownContext) => Promise<void> | void;
@@ -35,34 +42,34 @@ export type WebhookSetupContext = {
   webhookUrl: string; // Full URL where webhook will be available
   // Store metadata that can be used during teardown
   setMetadata: (key: string, value: any) => void;
-}
+};
 
 export type WebhookTeardownContext = {
   // Retrieve metadata stored during setup
   getMetadata: (key: string) => any;
-}
+};
 
 // Webhook trigger args
 export type WebhookTriggerArgs<TBody = any> = {
   handler: Handler<WebhookEvent<TBody>, WebhookContext>;
   path?: string;
-  method?: 'POST' | 'GET' | 'PUT' | 'DELETE';
+  method?: "POST" | "GET" | "PUT" | "DELETE";
   setup?: (ctx: WebhookSetupContext) => Promise<void> | void;
   teardown?: (ctx: WebhookTeardownContext) => Promise<void> | void;
-}
+};
 
 // Cron-specific trigger
 export type CronEvent = {
   scheduledTime: Date;
   actualTime: Date;
-}
+};
 
 export type CronContext = {
   // Add cron-specific context utilities here
-}
+};
 
 export interface CronTrigger extends Trigger<CronEvent, CronContext> {
-  type: 'cron';
+  type: "cron";
   handler: Handler<CronEvent, CronContext>;
   expression: string;
   setup?: (ctx: CronSetupContext) => Promise<void> | void;
@@ -71,11 +78,11 @@ export interface CronTrigger extends Trigger<CronEvent, CronContext> {
 
 export type CronSetupContext = {
   // cron-specific setup context
-}
+};
 
 export type CronTeardownContext = {
   // cron-specific teardown context
-}
+};
 
 // Cron trigger args
 export type CronTriggerArgs = {
@@ -83,7 +90,7 @@ export type CronTriggerArgs = {
   handler: Handler<CronEvent, CronContext>;
   setup?: (ctx: CronSetupContext) => Promise<void> | void;
   teardown?: (ctx: CronTeardownContext) => Promise<void> | void;
-}
+};
 
 // Realtime-specific trigger
 export type RealtimeEvent<TPayload = any> = {
@@ -92,15 +99,16 @@ export type RealtimeEvent<TPayload = any> = {
   payload: TPayload;
   timestamp: string;
   channel: string;
-}
+};
 
 export type RealtimeContext = {
   // Add realtime-specific context utilities here
   // e.g., send response, get channel info, etc.
-}
+};
 
-export interface RealtimeTrigger<TPayload = any> extends Trigger<RealtimeEvent<TPayload>, RealtimeContext> {
-  type: 'realtime';
+export interface RealtimeTrigger<TPayload = any>
+  extends Trigger<RealtimeEvent<TPayload>, RealtimeContext> {
+  type: "realtime";
   handler: Handler<RealtimeEvent<TPayload>, RealtimeContext>;
   channel: string;
   messageType?: string; // Optional filter for specific message types
@@ -113,12 +121,12 @@ export type RealtimeSetupContext = {
   channel: string;
   // Store metadata that can be used during teardown
   setMetadata: (key: string, value: any) => void;
-}
+};
 
 export type RealtimeTeardownContext = {
   // Retrieve metadata stored during setup
   getMetadata: (key: string) => any;
-}
+};
 
 // Realtime trigger args
 export type RealtimeTriggerArgs<TPayload = any> = {
@@ -128,14 +136,14 @@ export type RealtimeTriggerArgs<TPayload = any> = {
   authentication?: () => Promise<string>;
   setup?: (ctx: RealtimeSetupContext) => Promise<void> | void;
   teardown?: (ctx: RealtimeTeardownContext) => Promise<void> | void;
-}
+};
 
 export interface Action {}
 
 export type SecretDefinition = {
   key: string;
   label: string;
-  type: 'string' | 'password';
+  type: "string" | "password";
   required: boolean;
 };
 
@@ -146,4 +154,17 @@ export interface Provider {
   configure?: (secrets: Record<string, string>) => void;
   triggers: Record<string, (...args: any[]) => Trigger>;
   actions: Record<string, (...args: any[]) => Action>;
+}
+
+export async function getProvider<T extends "gitlab" | "slack">(
+  provider: T,
+  alias: string = "default"
+): Promise<T extends "gitlab" ? Gitlab : Slack> {
+  switch (provider) {
+    case "gitlab":
+      return new Gitlab() as any;
+    case "slack":
+      return new Slack() as any;
+  }
+  throw new Error("unknown provider");
 }

@@ -115,6 +115,64 @@ export async function executeUserProject(
   }
 }
 
+export async function executeUserProjectWithProviderDetection(
+  options: ExecuteUserProjectOptions
+): Promise<{ result: any; detectedProviders: any[] }> {
+  const { files, entryPoint, debugMode = false, debugContext } = options;
+
+  const vfs = new VirtualFileSystem(files);
+  const moduleSystem = new ModuleSystem(vfs, debugMode, debugContext);
+
+  try {
+    const [fileAndExport, exportName] = entryPoint.includes(".")
+      ? entryPoint.split(".", 2)
+      : [entryPoint, "default"];
+
+    // Try to find the file with extensions
+    let filePath = fileAndExport;
+    if (!vfs.exists(filePath)) {
+      const extensions = [".ts", ".js"];
+      for (const ext of extensions) {
+        if (vfs.exists(filePath + ext)) {
+          filePath = filePath + ext;
+          break;
+        }
+      }
+    }
+
+    // Clear any previous provider detections
+    moduleSystem.clearDetectedProviders();
+
+    const module = moduleSystem.loadModule(filePath);
+    let result;
+
+    if (exportName && exportName !== "default") {
+      const exportedFunction = module[exportName];
+      if (typeof exportedFunction === "function") {
+        result = await exportedFunction();
+      } else {
+        result = exportedFunction;
+      }
+    } else if (typeof module === "function") {
+      result = await module();
+    } else if (module.handler && typeof module.handler === "function") {
+      result = await module.handler();
+    } else if (module.default && typeof module.default === "function") {
+      result = await module.default();
+    } else {
+      result = module;
+    }
+
+    // Get detected providers
+    const detectedProviders = moduleSystem.getDetectedProviders();
+
+    return { result, detectedProviders };
+  } catch (error) {
+    console.error("User code execution failed:", error);
+    throw error;
+  }
+}
+
 export { VirtualFileSystem } from "./VirtualFileSystem";
 export { ModuleSystem } from "./ModuleSystem";
 export { DebugContext } from "../cli/debug/debugContext";
