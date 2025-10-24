@@ -8,9 +8,6 @@ importers:
 
   .:
     dependencies:
-      '@DeveloperFlows/floww-sdk':
-        specifier: 'link:'
-        version: 'link:'
       '@clack/core':
         specifier: ^0.5.0
         version: 0.5.0

@@ -17,9 +17,25 @@ export function dockerBuildImage(
   const localImage = `floww:${workloadId}`;
 
   try {
-    // Build the image with multiple tags
-    execSync(`docker build --provenance=false -t "${localImage}" .`, {
-      cwd: projectDir,
+    // Build the image for x86_64 (Lambda architecture)
+    // Check if we're in SDK examples (monorepo) - use parent context to access SDK source
+    const isInSdkExamples = projectDir.includes('/sdk/examples/');
+
+    let buildCmd: string;
+    let buildCwd: string;
+
+    if (isInSdkExamples) {
+      // In monorepo: use SDK root as context
+      buildCmd = `docker build --platform=linux/amd64 --provenance=false -f "${projectDir}/Dockerfile" -t "${localImage}" .`;
+      buildCwd = `${projectDir}/../..`;
+    } else {
+      // External project: use project directory as context
+      buildCmd = `docker build --platform=linux/amd64 --provenance=false -t "${localImage}" .`;
+      buildCwd = projectDir;
+    }
+
+    execSync(buildCmd, {
+      cwd: buildCwd,
       stdio: logger.interactive ? "pipe" : "inherit", // Hide output in interactive mode
     });
 

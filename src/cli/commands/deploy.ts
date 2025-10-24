@@ -32,15 +32,15 @@ import { validateProvidersAvailable } from "../providers/index";
 const defaultDockerfileContent = `
 FROM base-floww
 
-# ---- deps only ----
+# Install project dependencies (including SDK)
 COPY package.json package-lock.json* ./
 RUN npm install --omit=dev
 
-# Set entrypoint from config (will be overridden by environment variable in Lambda)
+# Set entrypoint from config
 ENV FLOWW_ENTRYPOINT=main.ts
 
 # No source code copying - code will be provided via Lambda event payload
-# Uses the universal handler from base-floww image
+# SDK must be listed in package.json dependencies
 `;
 
 function ensureDockerfile(projectDir: string, projectConfig: any): string {
@@ -231,6 +231,28 @@ export async function deployCommand() {
 
   // 3. Ensure Dockerfile exists
   ensureDockerfile(projectDir, projectConfig);
+
+  // 3.5. Pre-build SDK if in monorepo (for faster Docker builds)
+  const isInSdkExamples = projectDir.includes('/sdk/examples/');
+  if (isInSdkExamples) {
+    await logger.task("Pre-building SDK", async () => {
+      const { execSync } = await import("child_process");
+      const sdkDir = `${projectDir}/../..`;
+
+      // Install and build SDK, remove self-referential link, and pack
+      execSync(`
+        pnpm install &&
+        pnpm build &&
+        node -e "const fs=require('fs'); const pkg=JSON.parse(fs.readFileSync('package.json','utf8')); delete pkg.dependencies['@DeveloperFlows/floww-sdk']; fs.writeFileSync('package.json',JSON.stringify(pkg,null,2));" &&
+        pnpm pack --pack-destination ./ &&
+        git checkout package.json
+      `, {
+        cwd: sdkDir,
+        stdio: logger.interactive ? "pipe" : "inherit",
+        shell: "/bin/bash",
+      });
+    });
+  }
 
   // 4. Build Docker image
   const buildResult = await logger.task("Building Docker image", async () => {

@@ -37,6 +37,15 @@ export class ModuleSystem {
           const req = createRequire(process.cwd() + '/package.json');
           return req(specifier);
         } catch (e) {
+          // Handle case-insensitive SDK package name
+          if (specifier.toLowerCase() === '@developerflows/floww-sdk') {
+            try {
+              const req = createRequire(process.cwd() + '/package.json');
+              return req('@DeveloperFlows/floww-sdk');
+            } catch (e2) {
+              // Fall through to VFS resolution
+            }
+          }
           // Not a built-in, try user modules
         }
       }
