@@ -142,3 +142,5 @@ vite.config.ts.timestamp-*
 
 # Pulumi
 pulumi-state/
+
+examples/test_**
