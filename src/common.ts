@@ -1,6 +1,3 @@
-import { Gitlab } from "./providers/gitlab";
-import { Slack } from "./providers/slack";
-
 export type Handler<TEvent = any, TContext = any> = (
   ctx: TContext,
   event: TEvent
@@ -154,17 +151,4 @@ export interface Provider {
   configure?: (secrets: Record<string, string>) => void;
   triggers: Record<string, (...args: any[]) => Trigger>;
   actions: Record<string, (...args: any[]) => Action>;
-}
-
-export async function getProvider<T extends "gitlab" | "slack">(
-  provider: T,
-  alias: string = "default"
-): Promise<T extends "gitlab" ? Gitlab : Slack> {
-  switch (provider) {
-    case "gitlab":
-      return new Gitlab() as any;
-    case "slack":
-      return new Slack() as any;
-  }
-  throw new Error("unknown provider");
 }

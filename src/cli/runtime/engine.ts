@@ -21,6 +21,11 @@ import { tryLoadProjectConfig, ProjectConfig } from "../config/projectConfig";
 import { logger } from "../utils/logger";
 import { fetchWorkflow } from "../api/apiMethods";
 
+export type EngineLoadResult = {
+  triggers: Trigger[];
+  providers: any[];
+};
+
 export class FlowEngine {
   private eventStream = new EventStream();
   private eventProducers: EventProducer[] = [];
@@ -116,39 +121,72 @@ export class FlowEngine {
     this.secretManager = new SecretManager(apiClient, namespaceId);
   }
 
-  async load(filePath: string): Promise<Trigger[]> {
+  async load(filePath: string): Promise<EngineLoadResult> {
     const userProject = await getUserProject(filePath, "default");
-    const module = await executeUserProject({
+
+    // Parse the original entry point to get file and export name
+    const originalEntryPoint = userProject.entryPoint;
+    const [fileAndExport] = originalEntryPoint.includes(".")
+      ? originalEntryPoint.split(".", 2)
+      : [originalEntryPoint, "default"];
+
+    const wrapperCode = `
+      // Import the original user module to trigger auto-registration
+      const originalModule = require('./${fileAndExport.replace(".ts", "")}');
+
+      // Import auto-registration functions
+      const { getUsedProviders, getRegisteredTriggers } = require('@developerflows/floww-sdk');
+
+      // Capture auto-registered data
+      const usedProviders = getUsedProviders();
+      const registeredTriggers = getRegisteredTriggers();
+
+      // Export auto-registered triggers as default (for engine compatibility)
+      module.exports = registeredTriggers;
+      module.exports.default = registeredTriggers;
+
+      // Also expose other data for systems that need it
+      module.exports.triggers = registeredTriggers;
+      module.exports.providers = usedProviders;
+      module.exports.originalResult = originalModule;
+    `;
+
+    // Add wrapper file to the project files
+    const wrappedFiles = {
+      ...userProject.files,
+      "__wrapper__.js": wrapperCode,
+    };
+
+    const wrappedProject = {
       ...userProject,
+      files: wrappedFiles,
+      entryPoint: "__wrapper__",
+    };
+
+    const module = await executeUserProject({
+      ...wrappedProject,
       debugMode: this.debugMode,
       debugContext: this.debugContext,
     });
-    const triggers = module.default;
+
+    // The wrapper exports auto-registered triggers as default
+    const triggers = module.default || [];
+    const providers = module.providers || [];
 
     if (!Array.isArray(triggers)) {
       throw new Error(
-        "Triggers file must export an array of triggers as default export"
+        "No triggers were auto-registered. Make sure you're creating triggers using builtin.triggers.onCron() or similar methods."
       );
     }
 
     this.triggers = triggers;
-    this.extractProviders(module);
-    return triggers;
+
+    return {
+      triggers,
+      providers
+    };
   }
 
-  private extractProviders(module: any): void {
-    for (const key in module) {
-      const value = module[key];
-      if (
-        value &&
-        typeof value === "object" &&
-        "providerType" in value &&
-        "triggers" in value
-      ) {
-        this.providers.add(value as Provider);
-      }
-    }
-  }
 
   private async promptForMissingSecrets(): Promise<void> {
     for (const provider of this.providers) {
@@ -241,9 +279,9 @@ export class FlowEngine {
     for (const trigger of this.triggers) {
       if (trigger.type === "webhook") {
         logger.plain(
-          `📌 Webhook: ${(trigger as WebhookTrigger).method || "POST"} /webhook${
-            (trigger as WebhookTrigger).path || ""
-          }`
+          `📌 Webhook: ${
+            (trigger as WebhookTrigger).method || "POST"
+          } /webhook${(trigger as WebhookTrigger).path || ""}`
         );
       } else if (trigger.type === "cron") {
         logger.plain(`⏰ Cron: ${(trigger as CronTrigger).expression}`);

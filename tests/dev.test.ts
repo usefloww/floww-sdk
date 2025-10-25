@@ -93,4 +93,43 @@ export default [
     expect(command.stdout()).toContain("Reloading triggers");
     expect(command.stdout()).toContain("UPDATED: Cron triggered");
   });
+
+  it("should trigger provider setup flow for missing providers", async () => {
+    // Create files with a provider that doesn't exist
+    const filesWithProvider = [
+      {
+        name: "main.ts",
+        content: `import { getProvider, Builtin } from "@developerflows/floww-sdk";
+
+const gitlab = getProvider("gitlab");
+const builtin = new Builtin();
+
+export default [
+  builtin.triggers.onCron({
+    expression: "*/1 * * * * *",
+    handler: async (ctx, event) => {
+      // Use the gitlab provider in the handler
+      console.log("Using gitlab:", await gitlab);
+    },
+  }),
+];
+`,
+      },
+      ...files.slice(1), // Keep package.json and floww.yaml
+    ];
+
+    // Reset command space with new files
+    await commandSpace.exit();
+    commandSpace = new CommandSpace(filesWithProvider);
+    await commandSpace.initialize();
+
+    const command = commandSpace.backgroundCommand("dev");
+
+    // Should detect the missing gitlab provider and show setup prompt
+    await waitUntilStdout(command, "Provider Setup Required", 10000);
+    await waitUntilStdout(command, "gitlab", 5000);
+
+    expect(command.stdout()).toContain("Provider Setup Required");
+    expect(command.stdout()).toContain("gitlab");
+  });
 });

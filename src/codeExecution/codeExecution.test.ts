@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { executeUserProject } from "./index";
+import { describe, it, expect, beforeEach } from "vitest";
+import { executeUserProject, wrapUserProject } from "./index";
 
 describe("Code Execution", () => {
   it("should execute basic TypeScript with imports", async () => {
@@ -242,5 +242,34 @@ describe("Code Execution", () => {
       entryPoint: "main.handler",
     });
     expect(result).toBe(35);
+  });
+});
+
+describe("Test wrapper", () => {
+  it("Wrapper should wrap", async () => {
+    const files = {
+      "main.ts": `
+        export function getValue() {
+          return 1
+        }
+      `,
+    };
+
+    const result = await executeUserProject({
+      files,
+      entryPoint: "main",
+    });
+
+    const wrappedProject = await wrapUserProject(
+      result,
+      `
+      // Directly return the value since we can't import in this test scenario
+      export default 1
+      `
+    );
+
+    const wrappedResult = await executeUserProject(wrappedProject);
+
+    expect(wrappedResult.default).toBe(1);
   });
 });

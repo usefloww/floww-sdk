@@ -1,9 +1,10 @@
 import chokidar from "chokidar";
-import { FlowEngine } from "../runtime/engine";
+import { FlowEngine, EngineLoadResult } from "../runtime/engine";
 import { loadProjectConfig, hasProjectConfig } from "../config/projectConfig";
 import path from "path";
 import { logger } from "../utils/logger";
-import { ensureProvidersAvailable } from "../providers/index";
+import { checkProviderAvailability } from "../providers/availability";
+import { setupUnavailableProviders } from "../providers/setup";
 
 interface DevOptions {
   port: string;
@@ -66,12 +67,50 @@ export async function devCommand(
 
   const engine = new FlowEngine(port, host, debugMode, debugPort);
 
-  // Check and setup providers before loading triggers
+  // Load triggers and providers
+  let loadResult: EngineLoadResult;
+  try {
+    await logger.task("Loading triggers", async () => {
+      loadResult = await engine.load(entrypoint);
+    });
+  } catch (error) {
+    logger.error("Failed to load:", error);
+    process.exit(1);
+  }
+
+  // Check and setup providers after loading
   try {
     await logger.task("Checking providers", async () => {
-      const result = await ensureProvidersAvailable(entrypoint, 'triggers');
-      if (!result.success) {
-        throw new Error('Provider setup failed');
+      const usedProviders = loadResult.providers.map((p: any) => ({
+        type: p.provider,
+        alias: p.alias === "default" ? undefined : p.alias,
+      }));
+
+      if (usedProviders.length === 0) {
+        console.log("✅ No providers used - nothing to configure");
+        return;
+      }
+
+      console.log(`📋 Found ${usedProviders.length} used provider(s):`);
+      usedProviders.forEach((p: any) => {
+        console.log(`  • ${p.type}${p.alias ? ` (alias: ${p.alias})` : ""}`);
+      });
+
+      const availability = await checkProviderAvailability(usedProviders);
+
+      if (availability && availability.available && availability.available.length > 0) {
+        console.log(
+          `✅ ${availability.available.length} provider(s) already configured`
+        );
+      }
+
+      if (availability && availability.unavailable && availability.unavailable.length > 0) {
+        console.log(
+          `⚠️ ${availability.unavailable.length} provider(s) need configuration`
+        );
+        await setupUnavailableProviders(availability.unavailable);
+      } else {
+        console.log("🎉 All providers are already configured!");
       }
     });
   } catch (error) {
@@ -79,11 +118,8 @@ export async function devCommand(
     process.exit(1);
   }
 
-  // Load and start triggers
+  // Start the engine
   try {
-    await logger.task("Loading triggers", async () => {
-      await engine.load(entrypoint);
-    });
     await logger.task("Starting Flow Engine", async () => {
       await engine.start();
     });

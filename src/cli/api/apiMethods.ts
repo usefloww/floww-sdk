@@ -370,11 +370,13 @@ export async function fetchProviders(): Promise<Provider[]> {
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}: ${await response.text()}`);
   }
-  const data = (await response.json()) as { results: Provider[] };
-  return data.results;
+  const data = (await response.json()) as { providers: Provider[] };
+  return data.providers;
 }
 
-export async function fetchProviderType(providerType: string): Promise<ProviderType> {
+export async function fetchProviderType(
+  providerType: string
+): Promise<ProviderType> {
   const response = await makeApiCall(`/provider_types/${providerType}`);
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}: ${await response.text()}`);
@@ -382,7 +384,9 @@ export async function fetchProviderType(providerType: string): Promise<ProviderT
   return (await response.json()) as ProviderType;
 }
 
-export async function createProvider(providerData: ProviderCreateRequest): Promise<Provider> {
+export async function createProvider(
+  providerData: ProviderCreateRequest
+): Promise<Provider> {
   const response = await makeApiCall("/providers", {
     method: "POST",
     body: JSON.stringify(providerData),

@@ -1,6 +1,6 @@
 // Main SDK exports
 export * from './common';
-export * from './providers/functions';
+export * from './userCode/providers';
 export * from './providers/base';
 export * from './providers/builtin';
 export * from './providers/gitlab';

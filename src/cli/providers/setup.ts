@@ -1,19 +1,19 @@
 import { intro, outro, text, password, confirm, select, multiselect, spinner } from '@clack/prompts';
 import { fetchProviderType, createProvider, ProviderSetupStep, fetchNamespaces } from '../api/apiMethods';
-import { DetectedProvider } from './instrumentation';
+import { UsedProvider } from './availability';
 import { logger } from '../utils/logger';
 
-export async function setupMissingProviders(
-  missingProviders: DetectedProvider[]
+export async function setupUnavailableProviders(
+  unavailableProviders: UsedProvider[]
 ): Promise<void> {
-  if (missingProviders.length === 0) {
+  if (unavailableProviders.length === 0) {
     return;
   }
 
   intro('🔌 Provider Setup Required');
 
-  console.log(`Found ${missingProviders.length} missing provider(s) that need to be configured:`);
-  missingProviders.forEach(provider => {
+  console.log(`Found ${unavailableProviders.length} unavailable provider(s) that need to be configured:`);
+  unavailableProviders.forEach(provider => {
     console.log(`  • ${provider.type}${provider.alias ? ` (alias: ${provider.alias})` : ''}`);
   });
 
@@ -50,8 +50,8 @@ export async function setupMissingProviders(
     selectedNamespaceId = namespaceChoice as string;
   }
 
-  // Set up each missing provider
-  for (const provider of missingProviders) {
+  // Set up each unavailable provider
+  for (const provider of unavailableProviders) {
     await setupSingleProvider(provider, selectedNamespaceId);
   }
 
@@ -59,7 +59,7 @@ export async function setupMissingProviders(
 }
 
 async function setupSingleProvider(
-  provider: DetectedProvider,
+  provider: UsedProvider,
   namespaceId: string
 ): Promise<void> {
   console.log(`\n🔧 Setting up ${provider.type}${provider.alias ? ` (alias: ${provider.alias})` : ''}...`);

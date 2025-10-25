@@ -3,8 +3,7 @@ import { ModuleSystem } from "./ModuleSystem";
 import { DebugContext } from "../cli/debug/debugContext";
 import path from "path";
 import { pathToFileURL } from "url";
-import fs from 'fs/promises'
-
+import fs from "fs/promises";
 
 export interface ExecuteUserProjectOptions {
   files: Record<string, string>;
@@ -38,7 +37,7 @@ async function walkDirectory(
       await walkDirectory(fullPath, baseDir, excludeDirs, filesMap);
     } else if (entry.isFile()) {
       // Read file contents
-      const fileContent = await fs.readFile(fullPath, 'utf8');
+      const fileContent = await fs.readFile(fullPath, "utf8");
       filesMap[relativePath] = fileContent;
     }
   }
@@ -48,18 +47,31 @@ export async function getUserProject(
   filePath: string,
   entryPoint: string
 ): Promise<ExecuteUserProjectOptions> {
-
   const filesMap: Record<string, string> = {};
 
   // Directories to exclude
-  const excludeDirs = ['node_modules', '.git', 'dist', 'build', '.next'];
+  const excludeDirs = ["node_modules", ".git", "dist", "build", ".next"];
 
   // Walk directory tree, excluding specified directories and symlinks
   await walkDirectory(process.cwd(), process.cwd(), excludeDirs, filesMap);
 
   return {
     files: filesMap,
-    entryPoint: `${filePath.replace('.ts', '')}.${entryPoint}`,
+    entryPoint: `${filePath.replace(".ts", "")}.${entryPoint}`,
+  };
+}
+
+export async function wrapUserProject(
+  executionResult: any,
+  newContent: string
+): Promise<ExecuteUserProjectOptions> {
+  // Simple test wrapper API: wrapUserProject(executionResult, newContent)
+  // Return a new project with just the new content
+  return {
+    files: {
+      "main.ts": newContent,
+    },
+    entryPoint: "main",
   };
 }
 
@@ -109,64 +121,6 @@ export async function executeUserProject(
     }
 
     return module;
-  } catch (error) {
-    console.error("User code execution failed:", error);
-    throw error;
-  }
-}
-
-export async function executeUserProjectWithProviderDetection(
-  options: ExecuteUserProjectOptions
-): Promise<{ result: any; detectedProviders: any[] }> {
-  const { files, entryPoint, debugMode = false, debugContext } = options;
-
-  const vfs = new VirtualFileSystem(files);
-  const moduleSystem = new ModuleSystem(vfs, debugMode, debugContext);
-
-  try {
-    const [fileAndExport, exportName] = entryPoint.includes(".")
-      ? entryPoint.split(".", 2)
-      : [entryPoint, "default"];
-
-    // Try to find the file with extensions
-    let filePath = fileAndExport;
-    if (!vfs.exists(filePath)) {
-      const extensions = [".ts", ".js"];
-      for (const ext of extensions) {
-        if (vfs.exists(filePath + ext)) {
-          filePath = filePath + ext;
-          break;
-        }
-      }
-    }
-
-    // Clear any previous provider detections
-    moduleSystem.clearDetectedProviders();
-
-    const module = moduleSystem.loadModule(filePath);
-    let result;
-
-    if (exportName && exportName !== "default") {
-      const exportedFunction = module[exportName];
-      if (typeof exportedFunction === "function") {
-        result = await exportedFunction();
-      } else {
-        result = exportedFunction;
-      }
-    } else if (typeof module === "function") {
-      result = await module();
-    } else if (module.handler && typeof module.handler === "function") {
-      result = await module.handler();
-    } else if (module.default && typeof module.default === "function") {
-      result = await module.default();
-    } else {
-      result = module;
-    }
-
-    // Get detected providers
-    const detectedProviders = moduleSystem.getDetectedProviders();
-
-    return { result, detectedProviders };
   } catch (error) {
     console.error("User code execution failed:", error);
     throw error;

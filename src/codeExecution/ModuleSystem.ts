@@ -3,7 +3,6 @@ import ts from "typescript";
 import { createRequire } from "module";
 import { VirtualFileSystem } from "./VirtualFileSystem";
 import { DebugContext } from "../cli/debug/debugContext";
-import { ProviderInstrumentation } from "../cli/providers/instrumentation";
 
 export interface TranspileResult {
   code: string;
@@ -16,13 +15,11 @@ export class ModuleSystem {
   private vfs: VirtualFileSystem;
   private debugMode: boolean = false;
   private debugContext?: DebugContext;
-  private providerInstrumentation: ProviderInstrumentation;
 
   constructor(vfs: VirtualFileSystem, debugMode: boolean = false, debugContext?: DebugContext) {
     this.vfs = vfs;
     this.debugMode = debugMode;
     this.debugContext = debugContext;
-    this.providerInstrumentation = new ProviderInstrumentation();
 
     if (this.debugContext) {
       this.debugContext.setModuleSystem(this);
@@ -85,9 +82,6 @@ export class ModuleSystem {
     const transpileResult = this.transpile(source, filePath);
     let transpiledCode = transpileResult.code;
 
-    // Instrument code to track provider usage
-    transpiledCode = this.providerInstrumentation.instrumentCode(transpiledCode);
-
     // For inline source maps, extract and store them for debug context
     if (this.debugMode && this.debugContext) {
       // Try to extract source map from inline comment
@@ -138,8 +132,6 @@ export class ModuleSystem {
       setInterval,
       Buffer,
       process,
-      // Provide the tracking function
-      __trackProvider: this.providerInstrumentation.createTrackingFunction(getProvider),
     };
 
     // Use debugContext to enhance the VM context if available
@@ -235,12 +227,5 @@ export class ModuleSystem {
     return this.sourceMaps.has(filePath);
   }
 
-  // Provider detection methods
-  getDetectedProviders() {
-    return this.providerInstrumentation.getDetectedProviders();
-  }
 
-  clearDetectedProviders(): void {
-    this.providerInstrumentation.clearDetectedProviders();
-  }
 }
