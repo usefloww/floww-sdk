@@ -79,7 +79,7 @@ export class Gitlab extends BaseProvider {
   actions = {};
   triggers = {
     onMergeRequestComment: (
-      args: GitLabMergeRequestCommentTriggerArgs,
+      args: GitLabMergeRequestCommentTriggerArgs
     ): WebhookTrigger<GitLabMergeRequestCommentEvent> => {
       if (!args.projectId && !args.groupId) {
         throw new Error("Either projectId or groupId must be provided");
@@ -106,7 +106,7 @@ export class Gitlab extends BaseProvider {
                 merge_requests_events: true,
               });
               console.log(
-                `✅ GitLab webhook registered for project ${args.projectId}`,
+                `✅ GitLab webhook registered for project ${args.projectId}`
               );
 
               // Store metadata for teardown
@@ -119,7 +119,7 @@ export class Gitlab extends BaseProvider {
                 merge_requests_events: true,
               });
               console.log(
-                `✅ GitLab webhook registered for group ${args.groupId}`,
+                `✅ GitLab webhook registered for group ${args.groupId}`
               );
 
               // Store metadata for teardown
@@ -131,7 +131,7 @@ export class Gitlab extends BaseProvider {
           } catch (error: any) {
             console.error(
               "❌ Failed to register GitLab webhook:",
-              error.message,
+              error.message
             );
             throw error;
           }
@@ -151,12 +151,12 @@ export class Gitlab extends BaseProvider {
             if (projectId) {
               await api.deleteProjectWebhook(projectId, webhookId);
               console.log(
-                `🗑️  GitLab webhook ${webhookId} deleted from project ${projectId}`,
+                `🗑️  GitLab webhook ${webhookId} deleted from project ${projectId}`
               );
             } else if (groupId) {
               await api.deleteGroupWebhook(groupId, webhookId);
               console.log(
-                `🗑️  GitLab webhook ${webhookId} deleted from group ${groupId}`,
+                `🗑️  GitLab webhook ${webhookId} deleted from group ${groupId}`
               );
             }
           } catch (error: any) {

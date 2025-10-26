@@ -27,8 +27,9 @@ import {
 } from "../utils/dockerUtils";
 import { logger, ICONS } from "../utils/logger";
 import { selectOrCreateWorkflow } from "../utils/promptUtils";
-import { checkProviderAvailability } from "../providers/availability";
-import { FlowEngine } from "../runtime/engine";
+import { resolveWorkflow, fetchProviderConfigs } from "../runtime/workflow";
+import { executeUserCode } from "../runtime/userCode";
+import { checkProviders } from "../runtime/providers";
 
 const defaultDockerfileContent = `
 FROM base-floww
@@ -221,20 +222,21 @@ export async function deployCommand() {
   const providerValidation = await logger.debugTask(
     "Validating providers",
     async () => {
-      // Use engine loading approach to get providers
-      const engine = new FlowEngine(3000, "localhost", false);
-      const loadResult = await engine.load(entrypoint);
+      // Resolve workflow and fetch provider configs
+      const workflowConfig = await resolveWorkflow(projectConfig);
+      const providerConfigs = await fetchProviderConfigs(
+        workflowConfig.namespaceId,
+      );
 
-      const usedProviders = loadResult.providers.map((p: any) => ({
-        type: p.provider,
-        alias: p.alias === "default" ? undefined : p.alias,
-      }));
+      // Execute user code to get provider usage
+      const result = await executeUserCode(entrypoint, providerConfigs);
 
-      if (usedProviders.length === 0) {
+      if (result.usedProviders.length === 0) {
         return { valid: true, unavailable: [] };
       }
 
-      const availability = await checkProviderAvailability(usedProviders);
+      // Check provider availability (non-interactive)
+      const availability = await checkProviders(result.usedProviders);
 
       if (availability.unavailable.length === 0) {
         return { valid: true, unavailable: [] };

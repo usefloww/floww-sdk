@@ -5,6 +5,6 @@ const builtin = getProvider("builtin");
 builtin.triggers.onCron({
   expression: "*/1 * * * * *",
   handler: (ctx, event) => {
-    console.log("Do this every minute", event.scheduledTime);
+    console.log("Do this every second", event.scheduledTime);
   },
 });

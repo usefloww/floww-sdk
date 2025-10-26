@@ -1,10 +1,7 @@
 import chokidar from "chokidar";
-import { FlowEngine, EngineLoadResult } from "../runtime/engine";
+import { DevModeOrchestrator } from "../runtime/DevModeOrchestrator";
 import { loadProjectConfig, hasProjectConfig } from "../config/projectConfig";
-import path from "path";
 import { logger } from "../utils/logger";
-import { checkProviderAvailability } from "../providers/availability";
-import { setupUnavailableProviders } from "../providers/setup";
 
 interface DevOptions {
   port: string;
@@ -13,9 +10,29 @@ interface DevOptions {
   debugPort?: string;
 }
 
+/**
+ * Dev Mode Command - Run workflow locally with hot-reload
+ *
+ * Flow (as documented in architecture.md):
+ *
+ * Init:
+ * 1. Check that workflow exists
+ *
+ * Execution:
+ * 2. Fetch available providers in namespace
+ * 3. Initialize userspace with provider configs and execute
+ * 4. Verify that all used providers are set up (prompt user if not)
+ * 5. Setup event routing to userspace (websocket + local events)
+ *
+ * Reload Cycles:
+ * - Code change: Re-execute from step 3
+ * - Provider setup: Re-execute from step 1
+ *
+ * The DevModeOrchestrator handles this entire flow internally.
+ */
 export async function devCommand(
   file: string | undefined,
-  options: DevOptions,
+  options: DevOptions
 ) {
   const port = parseInt(options.port);
   const host = options.host;
@@ -25,13 +42,13 @@ export async function devCommand(
   // Check if running with Bun and warn about debugging limitations
   if (debugMode && process.versions.bun) {
     logger.warn(
-      "WARNING: Debugging features are not supported when running with Bun.",
+      "WARNING: Debugging features are not supported when running with Bun."
     );
     logger.console.warn(
-      "   The Node.js Inspector protocol is not available in Bun runtime.",
+      "   The Node.js Inspector protocol is not available in Bun runtime."
     );
     logger.console.warn(
-      "   For debugging support, please use Node.js or tsx instead:",
+      "   For debugging support, please use Node.js or tsx instead:"
     );
     logger.console.warn("     node dist/cli.js dev --debug");
     logger.console.warn("     # or");
@@ -54,8 +71,6 @@ export async function devCommand(
     entrypoint = "main.ts";
   }
 
-  // Resolve to absolute path
-
   console.log(`🚀 Development Mode${debugMode ? " (Debug Enabled)" : ""}`);
   console.log(`📂 Watching: ${entrypoint}`);
   if (debugMode) {
@@ -65,70 +80,18 @@ export async function devCommand(
     logger.debugInfo(`   • Debug utilities available in user code`);
   }
 
-  const engine = new FlowEngine(port, host, debugMode, debugPort);
+  // Create orchestrator
+  const orchestrator = new DevModeOrchestrator({
+    entrypoint,
+    port,
+    host,
+    debugMode,
+    debugPort,
+  });
 
-  // Load triggers and providers
-  let loadResult: EngineLoadResult;
+  // Start dev mode
   try {
-    loadResult = await logger.debugTask("Loading triggers", async () => {
-      return await engine.load(entrypoint);
-    });
-  } catch (error) {
-    logger.error("Failed to load:", error);
-    process.exit(1);
-  }
-
-  // Check and setup providers after loading
-  try {
-    const usedProviders = loadResult.providers.map((p: any) => ({
-      type: p.provider,
-      alias: p.alias === "default" ? undefined : p.alias,
-    }));
-
-    if (usedProviders.length === 0) {
-      logger.debugInfo("No providers used - nothing to configure");
-    } else {
-      logger.debugInfo(
-        `Found ${usedProviders.length} used provider(s):`,
-        usedProviders,
-      );
-
-      const availability = await checkProviderAvailability(usedProviders);
-
-      if (
-        availability &&
-        availability.available &&
-        availability.available.length > 0
-      ) {
-        logger.debugInfo(
-          `${availability.available.length} provider(s) already configured`,
-        );
-      }
-
-      if (
-        availability &&
-        availability.unavailable &&
-        availability.unavailable.length > 0
-      ) {
-        console.log(
-          `⚠️  ${availability.unavailable.length} provider(s) need configuration`,
-        );
-        await setupUnavailableProviders(availability.unavailable);
-      } else {
-        logger.debugInfo("All providers are already configured!");
-      }
-    }
-  } catch (error) {
-    logger.error("Provider setup failed:", error);
-    process.exit(1);
-  }
-
-  // Start the engine
-  try {
-    await logger.debugTask("Starting Flow Engine", async () => {
-      await engine.start();
-    });
-    // Show user-friendly message when ready
+    await orchestrator.start();
     console.log("🚀 Development server is ready!");
   } catch (error) {
     logger.error("Failed to start:", error);
@@ -146,7 +109,7 @@ export async function devCommand(
     console.log(`🔄 File changed: ${path}`);
     try {
       await logger.debugTask("Reloading triggers", async () => {
-        await engine.reload(entrypoint);
+        await orchestrator.handleReload();
       });
       console.log("✅ Reloaded successfully");
     } catch (error) {
@@ -157,7 +120,7 @@ export async function devCommand(
   // Handle graceful shutdown
   process.on("SIGINT", async () => {
     await watcher.close();
-    await engine.stop();
+    await orchestrator.stop();
     process.exit(0);
   });
 }
