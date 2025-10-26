@@ -1,6 +1,6 @@
-import * as vm from 'vm';
-import { ModuleSystem } from '../../codeExecution/ModuleSystem';
-import { InspectorManager } from './inspectorManager';
+import * as vm from "vm";
+import { ModuleSystem } from "../../codeExecution/ModuleSystem";
+import { InspectorManager } from "./inspectorManager";
 
 export interface Position {
   line: number;
@@ -58,7 +58,8 @@ export class DebugContext {
     if (this.debugMode && sourceMap) {
       try {
         // Parse the source map if it's a string
-        const parsedMap = typeof sourceMap === 'string' ? JSON.parse(sourceMap) : sourceMap;
+        const parsedMap =
+          typeof sourceMap === "string" ? JSON.parse(sourceMap) : sourceMap;
         this.sourceMaps.set(filename, parsedMap);
       } catch (error) {
         console.warn(`Failed to parse source map for ${filename}:`, error);
@@ -66,7 +67,11 @@ export class DebugContext {
     }
   }
 
-  getOriginalPosition(filename: string, line: number, column: number): Position {
+  getOriginalPosition(
+    filename: string,
+    line: number,
+    column: number,
+  ): Position {
     const sourceMap = this.sourceMaps.get(filename);
     if (!sourceMap) {
       return { line, column };
@@ -75,15 +80,20 @@ export class DebugContext {
     try {
       // TODO: Implement proper source map parsing with source-map library
       // For now, attempt basic source map analysis
-      const parsedMap = typeof sourceMap === 'string' ? JSON.parse(sourceMap) : sourceMap;
+      const parsedMap =
+        typeof sourceMap === "string" ? JSON.parse(sourceMap) : sourceMap;
 
       // Basic heuristic: if the source map has mappings, try to estimate position
-      if (parsedMap.mappings && parsedMap.sources && parsedMap.sources.length > 0) {
+      if (
+        parsedMap.mappings &&
+        parsedMap.sources &&
+        parsedMap.sources.length > 0
+      ) {
         // Return approximate position (this is a simplified approach)
         // In a real implementation, we'd decode the VLQ mappings
         return {
           line: Math.max(1, line - 2), // Rough offset adjustment
-          column: Math.max(0, column)
+          column: Math.max(0, column),
         };
       }
 
@@ -95,22 +105,24 @@ export class DebugContext {
   }
 
   createVMContext(baseContext: any, filePath: string): any {
-    const debugUtilities = this.debugMode ? {
-      __debugBreak: () => {
-        // eslint-disable-next-line no-debugger
-        debugger;
-      },
-      __inspect: (obj: any) => this.inspect(obj),
-      __trace: () => this.getStackTrace(),
-      __debugLog: (message: string, ...args: any[]) => {
-        console.log(`[DEBUG ${filePath}]`, message, ...args);
-      }
-    } : {};
+    const debugUtilities = this.debugMode
+      ? {
+          __debugBreak: () => {
+            // eslint-disable-next-line no-debugger
+            debugger;
+          },
+          __inspect: (obj: any) => this.inspect(obj),
+          __trace: () => this.getStackTrace(),
+          __debugLog: (message: string, ...args: any[]) => {
+            console.log(`[DEBUG ${filePath}]`, message, ...args);
+          },
+        }
+      : {};
 
     return {
       ...baseContext,
       ...debugUtilities,
-      console: this.createDebugConsole(filePath)
+      console: this.createDebugConsole(filePath),
     };
   }
 
@@ -135,13 +147,13 @@ export class DebugContext {
         if (this.debugMode) {
           console.debug(`[DEBUG ${this.getShortPath(filePath)}]`, ...args);
         }
-      }
+      },
     };
   }
 
   private getShortPath(filePath: string): string {
-    const parts = filePath.split('/');
-    return parts.length > 2 ? `.../${parts.slice(-2).join('/')}` : filePath;
+    const parts = filePath.split("/");
+    return parts.length > 2 ? `.../${parts.slice(-2).join("/")}` : filePath;
   }
 
   inspect(obj: any): any {
@@ -153,11 +165,11 @@ export class DebugContext {
       return {
         type: typeof obj,
         value: obj,
-        keys: obj && typeof obj === 'object' ? Object.keys(obj) : [],
-        constructor: obj?.constructor?.name || 'unknown'
+        keys: obj && typeof obj === "object" ? Object.keys(obj) : [],
+        constructor: obj?.constructor?.name || "unknown",
       };
     } catch (error) {
-      return { error: 'Failed to inspect object', value: String(obj) };
+      return { error: "Failed to inspect object", value: String(obj) };
     }
   }
 
@@ -171,7 +183,7 @@ export class DebugContext {
       return [];
     }
 
-    return stack.split('\n').slice(1); // Remove the Error message line
+    return stack.split("\n").slice(1); // Remove the Error message line
   }
 
   reportError(error: any, context?: any): void {
@@ -179,17 +191,19 @@ export class DebugContext {
       return;
     }
 
-    console.error('\n🐛 ENHANCED DEBUG ERROR REPORT');
-    console.error('================================================================');
+    console.error("\n🐛 ENHANCED DEBUG ERROR REPORT");
+    console.error(
+      "================================================================",
+    );
 
     // Basic error information
-    console.error(`💥 Error Type: ${error.constructor?.name || 'Unknown'}`);
-    console.error(`📝 Message: ${error.message || 'No message'}`);
+    console.error(`💥 Error Type: ${error.constructor?.name || "Unknown"}`);
+    console.error(`📝 Message: ${error.message || "No message"}`);
 
     // Enhanced stack trace with source map information
     if (error.stack) {
-      console.error('\n📊 Stack Trace with Source Mapping:');
-      const stackLines = error.stack.split('\n');
+      console.error("\n📊 Stack Trace with Source Mapping:");
+      const stackLines = error.stack.split("\n");
 
       stackLines.forEach((stackLine: string, index: number) => {
         if (index === 0) {
@@ -198,8 +212,9 @@ export class DebugContext {
         }
 
         // Try to extract file information from stack line
-        const fileMatch = stackLine.match(/at .* \((.+):(\d+):(\d+)\)/) ||
-                          stackLine.match(/at (.+):(\d+):(\d+)/);
+        const fileMatch =
+          stackLine.match(/at .* \((.+):(\d+):(\d+)\)/) ||
+          stackLine.match(/at (.+):(\d+):(\d+)/);
 
         if (fileMatch) {
           const [, filePath, lineNum, colNum] = fileMatch;
@@ -210,17 +225,25 @@ export class DebugContext {
           const originalPos = this.getOriginalPosition(filePath, line, column);
 
           if (originalPos.line !== line || originalPos.column !== column) {
-            console.error(`   ${stackLine} → Original: ${filePath}:${originalPos.line}:${originalPos.column}`);
+            console.error(
+              `   ${stackLine} → Original: ${filePath}:${originalPos.line}:${originalPos.column}`,
+            );
           } else {
             console.error(`   ${stackLine}`);
           }
 
           // Show source context if available
           if (this.hasSourceMap(filePath)) {
-            const sourceContext = this.getSourceContext(filePath, originalPos.line, 2);
+            const sourceContext = this.getSourceContext(
+              filePath,
+              originalPos.line,
+              2,
+            );
             if (sourceContext.length > 0) {
-              console.error('     Source context:');
-              sourceContext.forEach(contextLine => console.error(`       ${contextLine}`));
+              console.error("     Source context:");
+              sourceContext.forEach((contextLine) =>
+                console.error(`       ${contextLine}`),
+              );
             }
           }
         } else {
@@ -228,48 +251,57 @@ export class DebugContext {
         }
       });
     } else {
-      console.error('❌ No stack trace available');
+      console.error("❌ No stack trace available");
     }
 
     // Context information
     if (context) {
-      console.error('\n🔍 Execution Context:');
+      console.error("\n🔍 Execution Context:");
       const contextInfo = this.inspect(context);
       console.error(`   Type: ${contextInfo.type}`);
-      console.error(`   Keys: [${contextInfo.keys.join(', ')}]`);
+      console.error(`   Keys: [${contextInfo.keys.join(", ")}]`);
 
       // Show relevant context properties
-      if (context.eventType) console.error(`   Event Type: ${context.eventType}`);
-      if (context.triggerType) console.error(`   Trigger Type: ${context.triggerType}`);
+      if (context.eventType)
+        console.error(`   Event Type: ${context.eventType}`);
+      if (context.triggerType)
+        console.error(`   Trigger Type: ${context.triggerType}`);
       if (context.filePath) console.error(`   File Path: ${context.filePath}`);
-      if (context.hasSourceMap) console.error(`   Source Map Available: ${context.hasSourceMap}`);
+      if (context.hasSourceMap)
+        console.error(`   Source Map Available: ${context.hasSourceMap}`);
     }
 
     // Source map availability
     const sourceMapsCount = this.sourceMaps.size;
     console.error(`\n🗺️  Source Maps: ${sourceMapsCount} files mapped`);
     if (sourceMapsCount > 0) {
-      console.error('   Mapped files:');
+      console.error("   Mapped files:");
       for (const filePath of this.sourceMaps.keys()) {
         console.error(`     • ${this.getShortPath(filePath)}`);
       }
     }
 
-    console.error('================================================================\n');
+    console.error(
+      "================================================================\n",
+    );
   }
 
-  getSourceContext(filePath: string, line: number, contextLines: number = 3): string[] {
+  getSourceContext(
+    filePath: string,
+    line: number,
+    contextLines: number = 3,
+  ): string[] {
     try {
       // Try to read the actual source file if it exists in the file system
-      const fs = require('fs');
-      const path = require('path');
+      const fs = require("fs");
+      const path = require("path");
 
       // Resolve the file path relative to the current working directory
       const fullPath = path.resolve(process.cwd(), filePath);
 
       if (fs.existsSync(fullPath)) {
-        const content = fs.readFileSync(fullPath, 'utf8');
-        const lines = content.split('\n');
+        const content = fs.readFileSync(fullPath, "utf8");
+        const lines = content.split("\n");
 
         const startLine = Math.max(0, line - contextLines - 1);
         const endLine = Math.min(lines.length, line + contextLines);
@@ -278,8 +310,8 @@ export class DebugContext {
 
         for (let i = startLine; i < endLine; i++) {
           const lineNumber = i + 1;
-          const prefix = lineNumber === line ? '→' : ' ';
-          const formattedLine = `${prefix} ${lineNumber.toString().padStart(3)}: ${lines[i] || ''}`;
+          const prefix = lineNumber === line ? "→" : " ";
+          const formattedLine = `${prefix} ${lineNumber.toString().padStart(3)}: ${lines[i] || ""}`;
           context.push(formattedLine);
         }
 
@@ -290,18 +322,18 @@ export class DebugContext {
       if (this.moduleSystem) {
         return [
           `// Source context for ${filePath}:${line}`,
-          '// (File not found on disk, would need VFS access)'
+          "// (File not found on disk, would need VFS access)",
         ];
       }
 
       return [
         `// Source context for ${filePath}:${line}`,
-        '// (Source file not accessible)'
+        "// (Source file not accessible)",
       ];
     } catch (error) {
       return [
         `// Error reading source context for ${filePath}:${line}`,
-        `// ${error instanceof Error ? error.message : 'Unknown error'}`
+        `// ${error instanceof Error ? error.message : "Unknown error"}`,
       ];
     }
   }
@@ -322,16 +354,24 @@ export class DebugContext {
     return this.inspectorManager?.getDebuggerUrl() || null;
   }
 
-  async setBreakpoint(scriptId: string, lineNumber: number, columnNumber?: number): Promise<any> {
+  async setBreakpoint(
+    scriptId: string,
+    lineNumber: number,
+    columnNumber?: number,
+  ): Promise<any> {
     if (!this.inspectorManager) {
-      throw new Error('Inspector not initialized');
+      throw new Error("Inspector not initialized");
     }
-    return this.inspectorManager.setBreakpoint(scriptId, lineNumber, columnNumber);
+    return this.inspectorManager.setBreakpoint(
+      scriptId,
+      lineNumber,
+      columnNumber,
+    );
   }
 
   async evaluateExpression(expression: string): Promise<any> {
     if (!this.inspectorManager) {
-      throw new Error('Inspector not initialized');
+      throw new Error("Inspector not initialized");
     }
     return this.inspectorManager.evaluateExpression(expression);
   }

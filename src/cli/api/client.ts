@@ -1,14 +1,14 @@
 // Import fetch dynamically to handle ES module issues in bundled CLI
 async function getFetch() {
-  const { default: fetch } = await import('node-fetch');
+  const { default: fetch } = await import("node-fetch");
   return fetch;
 }
-import { getValidAuth } from '../auth/tokenUtils';
-import { getConfig } from '../config/configUtils';
-import { FlowwConfig } from '../config/configTypes';
+import { getValidAuth } from "../auth/tokenUtils";
+import { getConfig } from "../config/configUtils";
+import { FlowwConfig } from "../config/configTypes";
 
 export interface ApiCallOptions {
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+  method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
   body?: any;
   headers?: Record<string, string>;
 }
@@ -24,7 +24,7 @@ export class ApiClient {
   private clientId: string;
 
   constructor(baseUrl: string, clientId: string) {
-    this.baseUrl = baseUrl.replace(/\/$/, '') + '/api'; // Remove trailing slash
+    this.baseUrl = baseUrl.replace(/\/$/, "") + "/api"; // Remove trailing slash
     this.clientId = clientId;
   }
 
@@ -33,34 +33,34 @@ export class ApiClient {
    */
   async apiCall<T = any>(
     endpoint: string,
-    options: ApiCallOptions = {}
+    options: ApiCallOptions = {},
   ): Promise<ApiResponse<T>> {
-    const { method = 'GET', body, headers = {} } = options;
+    const { method = "GET", body, headers = {} } = options;
 
     // Get authentication token
     const auth = await getValidAuth();
     if (!auth) {
       return {
         status: 401,
-        error: 'Authentication required. Please run `floww auth login` first.'
+        error: "Authentication required. Please run `floww auth login` first.",
       };
     }
 
     // Prepare request
-    const url = `${this.baseUrl}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
+    const url = `${this.baseUrl}${endpoint.startsWith("/") ? endpoint : "/" + endpoint}`;
     const requestHeaders: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${auth.accessToken}`,
-      ...headers
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${auth.accessToken}`,
+      ...headers,
     };
-    console.log(url)
+    console.log(url);
 
     try {
       const fetch = await getFetch();
       const response = await fetch(url, {
         method,
         headers: requestHeaders,
-        body: body ? JSON.stringify(body) : undefined
+        body: body ? JSON.stringify(body) : undefined,
       });
 
       const responseData = await response.json().catch(() => null);
@@ -70,41 +70,45 @@ export class ApiClient {
         const refreshedAuth = await getValidAuth();
         if (refreshedAuth && refreshedAuth.accessToken !== auth.accessToken) {
           // Retry the request with new token
-          requestHeaders['Authorization'] = `Bearer ${refreshedAuth.accessToken}`;
+          requestHeaders["Authorization"] =
+            `Bearer ${refreshedAuth.accessToken}`;
           const retryResponse = await fetch(url, {
             method,
             headers: requestHeaders,
-            body: body ? JSON.stringify(body) : undefined
+            body: body ? JSON.stringify(body) : undefined,
           });
 
           const retryData = await retryResponse.json().catch(() => null);
           return {
             status: retryResponse.status,
             data: retryData,
-            error: retryResponse.ok ? undefined : (retryData?.detail || retryData?.error || 'Request failed')
+            error: retryResponse.ok
+              ? undefined
+              : retryData?.detail || retryData?.error || "Request failed",
           };
         }
 
         return {
           status: 401,
-          error: 'Authentication failed. Please run `floww auth login` again.'
+          error: "Authentication failed. Please run `floww auth login` again.",
         };
       }
 
       return {
         status: response.status,
         data: responseData,
-        error: response.ok ? undefined : (responseData?.detail || responseData?.error || 'Request failed')
+        error: response.ok
+          ? undefined
+          : responseData?.detail || responseData?.error || "Request failed",
       };
-
     } catch (error) {
       return {
         status: 500,
-        error: error instanceof Error ? error.message : 'Network error occurred'
+        error:
+          error instanceof Error ? error.message : "Network error occurred",
       };
     }
   }
-
 }
 
 /**
@@ -121,7 +125,7 @@ function createApiClient(): ApiClient {
 export async function apiCall<T = any>(
   endpoint: string,
   options: ApiCallOptions = {},
-  cliOptions: Partial<FlowwConfig> = {}
+  cliOptions: Partial<FlowwConfig> = {},
 ): Promise<ApiResponse<T>> {
   const client = createApiClient(cliOptions);
   return client.apiCall<T>(endpoint, options);

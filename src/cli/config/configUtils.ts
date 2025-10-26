@@ -1,9 +1,15 @@
-import fs from 'fs';
-import path from 'path';
-import { getFlowwConfigDir } from './xdg';
-import { FlowwConfig, CONFIG_SCHEMA, ConfigKey, ConfigWithSources, ConfigSource } from './configTypes';
+import fs from "fs";
+import path from "path";
+import { getFlowwConfigDir } from "./xdg";
+import {
+  FlowwConfig,
+  CONFIG_SCHEMA,
+  ConfigKey,
+  ConfigWithSources,
+  ConfigSource,
+} from "./configTypes";
 
-const CONFIG_FILE = 'config.json';
+const CONFIG_FILE = "config.json";
 let inMemoryConfig: FlowwConfig | null = null;
 
 function getConfigFilePath(): string {
@@ -19,7 +25,7 @@ function ensureConfigDir(): void {
 
 export function getConfig(): FlowwConfig {
   if (!inMemoryConfig) {
-    throw new Error('Config not initialized. Call setConfig() first.');
+    throw new Error("Config not initialized. Call setConfig() first.");
   }
   return inMemoryConfig;
 }
@@ -52,10 +58,10 @@ export function getStoredConfig(): Partial<FlowwConfig> {
   }
 
   try {
-    const data = fs.readFileSync(configPath, 'utf-8');
+    const data = fs.readFileSync(configPath, "utf-8");
     return JSON.parse(data);
   } catch (error) {
-    console.error('Failed to load config file:', error);
+    console.error("Failed to load config file:", error);
     return {};
   }
 }
@@ -68,7 +74,7 @@ export function setStoredConfig(config: Partial<FlowwConfig>): void {
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
     fs.chmodSync(configPath, 0o600);
   } catch (error) {
-    console.error('Failed to save config file:', error);
+    console.error("Failed to save config file:", error);
     throw error;
   }
 }
@@ -83,16 +89,16 @@ export function getConfigWithSources(): ConfigWithSources {
 
   for (const key of Object.keys(CONFIG_SCHEMA) as ConfigKey[]) {
     const schema = CONFIG_SCHEMA[key];
-    let source: ConfigSource['source'] = 'default';
+    let source: ConfigSource["source"] = "default";
     let value: string = schema.default;
 
     if (fileConfig[key]) {
-      source = 'config';
+      source = "config";
       value = fileConfig[key];
     }
 
     if (process.env[schema.envVar]) {
-      source = 'env';
+      source = "env";
       value = process.env[schema.envVar]!;
     }
 

@@ -1,12 +1,10 @@
-import { Builtin, getProvider } from "@developerflows/floww-sdk";
+import { getProvider } from "@developerflows/floww-sdk";
 
-export const builtin = new Builtin();
-const gitlab = getProvider("gitlab", "test");
+const builtin = getProvider("builtin");
 
 builtin.triggers.onCron({
   expression: "*/1 * * * * *",
   handler: (ctx, event) => {
-    // throw Error();
-    console.log("Cron trigger", event.scheduledTime);
+    console.log("Do this every minute", event.scheduledTime);
   },
 });

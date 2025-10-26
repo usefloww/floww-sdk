@@ -44,7 +44,7 @@ export class FlowEngine {
     private port: number,
     private host: string,
     debugMode: boolean = false,
-    debugPort: number = 9229
+    debugPort: number = 9229,
   ) {
     this.debugMode = debugMode;
     this.debugPort = debugPort;
@@ -92,7 +92,7 @@ export class FlowEngine {
           logger.warn(
             `Failed to fetch workflow details: ${
               error instanceof Error ? error.message : error
-            }`
+            }`,
           );
         }
       }
@@ -104,7 +104,7 @@ export class FlowEngine {
       if (namespaceId) {
         if (!this.projectConfig) {
           logger.warn(
-            "No floww.yaml found, using FLOWW_NAMESPACE_ID from environment"
+            "No floww.yaml found, using FLOWW_NAMESPACE_ID from environment",
           );
           logger.tip('Run "floww init" to create a project config file');
         }
@@ -115,7 +115,7 @@ export class FlowEngine {
       throw new Error(
         "No namespace ID found. Either:\n" +
           '  1. Run "floww init" to create a floww.yaml file with a valid workflowId, or\n' +
-          "  2. Set the FLOWW_NAMESPACE_ID environment variable"
+          "  2. Set the FLOWW_NAMESPACE_ID environment variable",
       );
     }
 
@@ -180,7 +180,7 @@ export class FlowEngine {
 
     if (!Array.isArray(triggers)) {
       throw new Error(
-        "No triggers were auto-registered. Make sure you're creating triggers using builtin.triggers.onCron() or similar methods."
+        "No triggers were auto-registered. Make sure you're creating triggers using builtin.triggers.onCron() or similar methods.",
       );
     }
 
@@ -205,7 +205,7 @@ export class FlowEngine {
       const secrets = await this.secretManager.ensureProviderSecrets(
         provider.providerType,
         credentialName,
-        provider.secretDefinitions
+        provider.secretDefinitions,
       );
 
       if (provider.configure) {
@@ -244,7 +244,7 @@ export class FlowEngine {
         } else if (event.type === "realtime") {
           // Find matching realtime triggers
           const realtimeTriggers = this.triggers.filter(
-            (t) => t.type === "realtime"
+            (t) => t.type === "realtime",
           ) as RealtimeTrigger[];
           for (const trigger of realtimeTriggers) {
             if (
@@ -260,7 +260,7 @@ export class FlowEngine {
 
         // Single success log with all info
         logger.console.success(
-          `${event.type} ${eventInfo} → completed in ${executionTime}ms`
+          `${event.type} ${eventInfo} → completed in ${executionTime}ms`,
         );
 
         // Set flag to add separator before next execution
@@ -270,7 +270,7 @@ export class FlowEngine {
 
         // Single error log with all info
         logger.console.error(
-          `${event.type} ${eventInfo} → failed after ${executionTime}ms`
+          `${event.type} ${eventInfo} → failed after ${executionTime}ms`,
         );
 
         if (this.debugContext) {
@@ -303,15 +303,15 @@ export class FlowEngine {
           logger.console.debug(
             `  📌 Webhook: ${
               (trigger as WebhookTrigger).method || "POST"
-            } /webhook${(trigger as WebhookTrigger).path || ""}`
+            } /webhook${(trigger as WebhookTrigger).path || ""}`,
           );
         } else if (trigger.type === "cron") {
           logger.console.debug(
-            `  ⏰ Cron: ${(trigger as CronTrigger).expression}`
+            `  ⏰ Cron: ${(trigger as CronTrigger).expression}`,
           );
         } else if (trigger.type === "realtime") {
           logger.console.debug(
-            `  📡 Realtime: ${(trigger as RealtimeTrigger).channel}`
+            `  📡 Realtime: ${(trigger as RealtimeTrigger).channel}`,
           );
         }
       }
@@ -326,7 +326,7 @@ export class FlowEngine {
     console.log(
       `✅ Flow Engine running with ${this.triggers.length} trigger(s)${
         this.debugMode ? ` (debugging on port ${this.debugPort})` : ""
-      }`
+      }`,
     );
 
     // Remove verbose debug feature list - users know they enabled debug mode

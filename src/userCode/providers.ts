@@ -1,3 +1,4 @@
+import { Builtin } from "@/providers";
 import { Gitlab } from "../providers/gitlab";
 import { Slack } from "../providers/slack";
 
@@ -28,17 +29,23 @@ export function clearUsedProviders() {
   _usedProviders.clear();
 }
 
-export async function getProvider<T extends "gitlab" | "slack">(
-  provider: T,
-  alias: string = "default"
-): Promise<T extends "gitlab" ? Gitlab : Slack> {
-  _usedProviders.add(`${provider}:${alias}`);
+const providers = {
+  gitlab: Gitlab,
+  slack: Slack,
+  builtin: Builtin,
+};
 
-  switch (provider) {
-    case "gitlab":
-      return new Gitlab() as any;
-    case "slack":
-      return new Slack() as any;
-  }
-  throw new Error("unknown provider");
+type ProviderName = keyof typeof providers;
+type ProviderInstance<T extends ProviderName> = InstanceType<
+  (typeof providers)[T]
+>;
+
+export function getProvider<T extends ProviderName>(
+  provider: T,
+  alias = "default",
+): ProviderInstance<T> {
+  _usedProviders.add(`${provider}:${alias}`);
+  const Provider = providers[provider];
+  if (!Provider) throw new Error("unknown provider");
+  return new Provider() as ProviderInstance<T>;
 }

@@ -15,7 +15,7 @@ export async function configSetCommand(key: string, value: string) {
 
   // Convert CLI key format to internal key format
   const configKey = Object.entries(schema).find(
-    ([, config]) => config.cliKey === key
+    ([, config]) => config.cliKey === key,
   )?.[0] as ConfigKey;
 
   if (!configKey) {
@@ -41,7 +41,7 @@ export async function configGetCommand(key: string) {
 
   // Convert CLI key format to internal key format
   const configKey = Object.entries(schema).find(
-    ([, config]) => config.cliKey === key
+    ([, config]) => config.cliKey === key,
   )?.[0] as ConfigKey;
 
   if (!configKey) {
@@ -124,7 +124,7 @@ export async function configHelpCommand() {
   console.log("Configuration priority (highest to lowest):");
   console.log("  1. ⚡ CLI flags (--backend-url, --workos-client-id)");
   console.log(
-    "  2. 🌍 Environment variables (FLOWW_BACKEND_URL, WORKOS_CLIENT_ID)"
+    "  2. 🌍 Environment variables (FLOWW_BACKEND_URL, WORKOS_CLIENT_ID)",
   );
   console.log("  3. 📁 Config file (~/.config/floww/config.json)");
   console.log("  4. 🏠 Built-in defaults");

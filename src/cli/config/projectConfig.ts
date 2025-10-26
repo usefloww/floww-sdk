@@ -1,6 +1,6 @@
-import fs from 'fs';
-import path from 'path';
-import yaml from 'js-yaml';
+import fs from "fs";
+import path from "path";
+import yaml from "js-yaml";
 
 export interface ProjectConfig {
   workflowId?: string;
@@ -10,7 +10,7 @@ export interface ProjectConfig {
   entrypoint?: string;
 }
 
-const CONFIG_FILENAME = 'floww.yaml';
+const CONFIG_FILENAME = "floww.yaml";
 
 /**
  * Get the path to the project config file
@@ -36,17 +36,17 @@ export function loadProjectConfig(dir: string = process.cwd()): ProjectConfig {
 
   if (!fs.existsSync(configPath)) {
     throw new Error(
-      `No floww.yaml found in ${dir}. Run 'floww init' to create one.`
+      `No floww.yaml found in ${dir}. Run 'floww init' to create one.`,
     );
   }
 
   try {
-    const content = fs.readFileSync(configPath, 'utf-8');
+    const content = fs.readFileSync(configPath, "utf-8");
     const config = yaml.load(content) as ProjectConfig;
 
     // Validate required fields
     if (!config.name) {
-      throw new Error('floww.yaml is missing required field: name');
+      throw new Error("floww.yaml is missing required field: name");
     }
 
     return config;
@@ -61,7 +61,9 @@ export function loadProjectConfig(dir: string = process.cwd()): ProjectConfig {
 /**
  * Try to load project config, return null if it doesn't exist
  */
-export function tryLoadProjectConfig(dir: string = process.cwd()): ProjectConfig | null {
+export function tryLoadProjectConfig(
+  dir: string = process.cwd(),
+): ProjectConfig | null {
   try {
     return loadProjectConfig(dir);
   } catch (error) {
@@ -74,13 +76,13 @@ export function tryLoadProjectConfig(dir: string = process.cwd()): ProjectConfig
  */
 export function saveProjectConfig(
   config: ProjectConfig,
-  dir: string = process.cwd()
+  dir: string = process.cwd(),
 ): void {
   const configPath = getProjectConfigPath(dir);
 
   // Validate required fields before saving
   if (!config.name) {
-    throw new Error('Cannot save config: name is required');
+    throw new Error("Cannot save config: name is required");
   }
 
   const content = yaml.dump(config, {
@@ -88,7 +90,7 @@ export function saveProjectConfig(
     lineWidth: -1,
     noRefs: true,
   });
-  fs.writeFileSync(configPath, content, 'utf-8');
+  fs.writeFileSync(configPath, content, "utf-8");
 }
 
 /**
@@ -98,13 +100,13 @@ export function saveProjectConfig(
 export function initProjectConfig(
   config: ProjectConfig,
   dir: string = process.cwd(),
-  force: boolean = false
+  force: boolean = false,
 ): void {
   const configPath = getProjectConfigPath(dir);
 
   if (fs.existsSync(configPath) && !force) {
     throw new Error(
-      `floww.yaml already exists in ${dir}. Use --force to overwrite.`
+      `floww.yaml already exists in ${dir}. Use --force to overwrite.`,
     );
   }
 
@@ -116,7 +118,7 @@ export function initProjectConfig(
  */
 export function updateProjectConfig(
   updates: Partial<ProjectConfig>,
-  dir: string = process.cwd()
+  dir: string = process.cwd(),
 ): ProjectConfig {
   const config = loadProjectConfig(dir);
   const updatedConfig = { ...config, ...updates };

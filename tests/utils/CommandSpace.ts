@@ -1,7 +1,6 @@
 import { spawn, ChildProcess } from "child_process";
 import { promises as fs } from "fs";
 import path from "path";
-import os from "os";
 
 export interface File {
   name: string;
@@ -79,28 +78,30 @@ export class CommandSpace {
     // Parse command string - assume it starts with "dev" and extract args
     const args = commandString.split(" ");
 
-
     // Use the exact node executable that VS Code is configured to use
-    const nodeExecutable = process.env.VITEST_NODE_EXECUTABLE ||
-                           "/Users/toon/.local/share/mise/installs/node/22.15.0/bin/node" ||
-                           process.execPath;
+    const nodeExecutable =
+      process.env.VITEST_NODE_EXECUTABLE ||
+      "/Users/toon/.local/share/mise/installs/node/22.15.0/bin/node" ||
+      process.execPath;
 
     // Use tsx binary directly with full node path
-    const tsxBin = path.join(process.cwd(), "node_modules", "tsx", "dist", "cli.mjs");
+    const tsxBin = path.join(
+      process.cwd(),
+      "node_modules",
+      "tsx",
+      "dist",
+      "cli.mjs"
+    );
 
     const childProcess = spawn(
       nodeExecutable,
-      [
-        tsxBin,
-        "../../src/cli/index.ts",
-        ...args
-      ],
+      [tsxBin, "../../src/cli/index.ts", ...args],
       {
         cwd: this.tempDir,
         env: {
           ...process.env,
           FLOWW_NAMESPACE_ID: "test-namespace-id",
-          PATH: path.dirname(nodeExecutable) + ":" + (process.env.PATH || "")
+          PATH: path.dirname(nodeExecutable) + ":" + (process.env.PATH || ""),
         },
         stdio: "pipe",
       }

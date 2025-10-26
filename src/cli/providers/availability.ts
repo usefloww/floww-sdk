@@ -13,7 +13,7 @@ export interface ProviderAvailabilityResult {
 }
 
 export async function checkProviderAvailability(
-  usedProviders: UsedProvider[]
+  usedProviders: UsedProvider[],
 ): Promise<ProviderAvailabilityResult> {
   try {
     // Fetch existing providers from API
@@ -32,7 +32,9 @@ export async function checkProviderAvailability(
     usedProviders.forEach((used) => {
       const key = used.alias || used.type;
 
-      if (existingMap.has(key)) {
+      if (used.type == "builtin") {
+        available.push(used);
+      } else if (existingMap.has(key)) {
         const existing = existingMap.get(key)!;
         // Verify type matches
         if (existing.type === used.type) {
@@ -58,7 +60,7 @@ export async function checkProviderAvailability(
 }
 
 export function getUnavailableProviderTypes(
-  unavailable: UsedProvider[]
+  unavailable: UsedProvider[],
 ): string[] {
   return [...new Set(unavailable.map((p) => p.type))];
 }

@@ -1,5 +1,9 @@
-import { fetchWorkflows, createWorkflow, fetchNamespaces } from '../api/apiMethods';
-import { logger } from './logger';
+import {
+  fetchWorkflows,
+  createWorkflow,
+  fetchNamespaces,
+} from "../api/apiMethods";
+import { logger } from "./logger";
 
 export interface WorkflowSelectionOptions {
   namespaceId?: string;
@@ -22,7 +26,7 @@ export interface WorkflowSelectionResult {
  * Used by both init and deploy commands when workflow selection is needed
  */
 export async function selectOrCreateWorkflow(
-  options: WorkflowSelectionOptions
+  options: WorkflowSelectionOptions,
 ): Promise<WorkflowSelectionResult> {
   const { namespaceId, suggestedName, allowCreate = true } = options;
 
@@ -30,61 +34,73 @@ export async function selectOrCreateWorkflow(
 
   // If no namespaceId provided, let user select one
   if (!selectedNamespaceId) {
-    const namespaces = await logger.task('Fetching your namespaces', async () => {
-      return await fetchNamespaces();
-    });
+    const namespaces = await logger.task(
+      "Fetching your namespaces",
+      async () => {
+        return await fetchNamespaces();
+      },
+    );
 
     if (namespaces.length === 0) {
-      throw new Error('No namespaces found. Please create a namespace in the Floww dashboard first.');
+      throw new Error(
+        "No namespaces found. Please create a namespace in the Floww dashboard first.",
+      );
     }
 
     if (namespaces.length === 1) {
       selectedNamespaceId = namespaces[0].id;
       logger.success(`Using namespace: ${namespaces[0].display_name}`);
     } else {
-      selectedNamespaceId = await logger.select('Select a namespace:',
-        namespaces.map(ns => ({
+      selectedNamespaceId = await logger.select(
+        "Select a namespace:",
+        namespaces.map((ns) => ({
           value: ns.id,
           label: ns.display_name,
-          hint: ns.name
-        }))
+          hint: ns.name,
+        })),
       );
     }
   }
 
   // Check for existing workflows in the namespace
-  const workflows = await logger.task('Checking existing workflows', async () => {
-    return await fetchWorkflows();
-  });
-  const namespaceWorkflows = workflows.filter(w => w.namespace_id === selectedNamespaceId);
+  const workflows = await logger.task(
+    "Checking existing workflows",
+    async () => {
+      return await fetchWorkflows();
+    },
+  );
+  const namespaceWorkflows = workflows.filter(
+    (w) => w.namespace_id === selectedNamespaceId,
+  );
 
   let workflowId: string | undefined;
   let selectedWorkflow: any;
   let isNew = false;
 
   if (namespaceWorkflows.length > 0) {
-    const workflowOptions = [
-      ...namespaceWorkflows.map(w => ({
+    const workflowOptions = namespaceWorkflows.map((w) => ({
         value: `existing:${w.id}`,
         label: w.name,
-        hint: w.description || 'Existing workflow'
-      }))
-    ];
+        hint: w.description || "Existing workflow",
+      }));
 
     // Add create new option if allowed
     if (allowCreate) {
       workflowOptions.push({
-        value: 'new',
-        label: 'Create new workflow',
-        hint: 'Start fresh with a new workflow'
+        value: "new",
+        label: "Create new workflow",
+        hint: "Start fresh with a new workflow",
       });
     }
 
-    const selection = await logger.select('Choose workflow option:', workflowOptions);
+    const selection = await logger.select(
+      "Choose workflow option:",
+      workflowOptions,
+    );
 
-    if (selection.startsWith('existing:')) {
-      workflowId = selection.replace('existing:', '');
-      selectedWorkflow = namespaceWorkflows.find(w => w.id === workflowId);
+    if (selection.startsWith("existing:")) {
+      workflowId = selection.replace("existing:", "");
+      selectedWorkflow = namespaceWorkflows.find((w) => w.id === workflowId);
       logger.success(`Using existing workflow: ${selectedWorkflow?.name}`);
     }
   }
@@ -92,29 +108,37 @@ export async function selectOrCreateWorkflow(
   // Create new workflow if needed
   if (!workflowId) {
     if (!allowCreate) {
-      throw new Error('No existing workflows found and creation is not allowed');
+      throw new Error(
+        "No existing workflows found and creation is not allowed",
+      );
     }
 
     let workflowName = suggestedName;
     if (!workflowName) {
-      workflowName = await logger.text('Workflow name:', 'my-workflow');
+      workflowName = await logger.text("Workflow name:", "my-workflow");
       if (!workflowName) {
-        throw new Error('Workflow name is required');
+        throw new Error("Workflow name is required");
       }
       if (workflowName.length < 2) {
-        throw new Error('Name must be at least 2 characters');
+        throw new Error("Name must be at least 2 characters");
       }
       if (!/^[a-zA-Z0-9\-_\s]+$/.test(workflowName)) {
-        throw new Error('Name can only contain letters, numbers, spaces, hyphens, and underscores');
+        throw new Error(
+          "Name can only contain letters, numbers, spaces, hyphens, and underscores",
+        );
       }
     }
 
     let description: string | undefined;
-    description = await logger.text('Description (optional):', '', '');
+    description = await logger.text("Description (optional):", "", "");
     if (!description) description = undefined;
 
-    selectedWorkflow = await logger.task('Creating new workflow', async () => {
-      return await createWorkflow(workflowName, selectedNamespaceId, description);
+    selectedWorkflow = await logger.task("Creating new workflow", async () => {
+      return await createWorkflow(
+        workflowName,
+        selectedNamespaceId,
+        description,
+      );
     });
     workflowId = selectedWorkflow.id;
     isNew = true;
@@ -122,7 +146,7 @@ export async function selectOrCreateWorkflow(
   }
 
   if (!workflowId || !selectedWorkflow) {
-    throw new Error('Failed to select or create workflow');
+    throw new Error("Failed to select or create workflow");
   }
 
   return {
@@ -131,7 +155,7 @@ export async function selectOrCreateWorkflow(
     workflow: {
       id: selectedWorkflow.id,
       name: selectedWorkflow.name,
-      description: selectedWorkflow.description
-    }
+      description: selectedWorkflow.description,
+    },
   };
 }

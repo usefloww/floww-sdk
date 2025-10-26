@@ -15,7 +15,7 @@ interface DevOptions {
 
 export async function devCommand(
   file: string | undefined,
-  options: DevOptions
+  options: DevOptions,
 ) {
   const port = parseInt(options.port);
   const host = options.host;
@@ -25,13 +25,13 @@ export async function devCommand(
   // Check if running with Bun and warn about debugging limitations
   if (debugMode && process.versions.bun) {
     logger.warn(
-      "WARNING: Debugging features are not supported when running with Bun."
+      "WARNING: Debugging features are not supported when running with Bun.",
     );
     logger.console.warn(
-      "   The Node.js Inspector protocol is not available in Bun runtime."
+      "   The Node.js Inspector protocol is not available in Bun runtime.",
     );
     logger.console.warn(
-      "   For debugging support, please use Node.js or tsx instead:"
+      "   For debugging support, please use Node.js or tsx instead:",
     );
     logger.console.warn("     node dist/cli.js dev --debug");
     logger.console.warn("     # or");
@@ -88,16 +88,31 @@ export async function devCommand(
     if (usedProviders.length === 0) {
       logger.debugInfo("No providers used - nothing to configure");
     } else {
-      logger.debugInfo(`Found ${usedProviders.length} used provider(s):`, usedProviders);
+      logger.debugInfo(
+        `Found ${usedProviders.length} used provider(s):`,
+        usedProviders,
+      );
 
       const availability = await checkProviderAvailability(usedProviders);
 
-      if (availability && availability.available && availability.available.length > 0) {
-        logger.debugInfo(`${availability.available.length} provider(s) already configured`);
+      if (
+        availability &&
+        availability.available &&
+        availability.available.length > 0
+      ) {
+        logger.debugInfo(
+          `${availability.available.length} provider(s) already configured`,
+        );
       }
 
-      if (availability && availability.unavailable && availability.unavailable.length > 0) {
-        console.log(`⚠️  ${availability.unavailable.length} provider(s) need configuration`);
+      if (
+        availability &&
+        availability.unavailable &&
+        availability.unavailable.length > 0
+      ) {
+        console.log(
+          `⚠️  ${availability.unavailable.length} provider(s) need configuration`,
+        );
         await setupUnavailableProviders(availability.unavailable);
       } else {
         logger.debugInfo("All providers are already configured!");

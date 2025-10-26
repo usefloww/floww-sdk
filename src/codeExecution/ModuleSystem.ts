@@ -16,7 +16,11 @@ export class ModuleSystem {
   private debugMode: boolean = false;
   private debugContext?: DebugContext;
 
-  constructor(vfs: VirtualFileSystem, debugMode: boolean = false, debugContext?: DebugContext) {
+  constructor(
+    vfs: VirtualFileSystem,
+    debugMode: boolean = false,
+    debugContext?: DebugContext,
+  ) {
     this.vfs = vfs;
     this.debugMode = debugMode;
     this.debugContext = debugContext;
@@ -31,14 +35,14 @@ export class ModuleSystem {
       if (!specifier.startsWith(".") && !specifier.startsWith("/")) {
         try {
           // Try to load as external module
-          const req = createRequire(process.cwd() + '/package.json');
+          const req = createRequire(process.cwd() + "/package.json");
           return req(specifier);
         } catch (e) {
           // Handle case-insensitive SDK package name
-          if (specifier.toLowerCase() === '@developerflows/floww-sdk') {
+          if (specifier.toLowerCase() === "@developerflows/floww-sdk") {
             try {
-              const req = createRequire(process.cwd() + '/package.json');
-              return req('@DeveloperFlows/floww-sdk');
+              const req = createRequire(process.cwd() + "/package.json");
+              return req("@DeveloperFlows/floww-sdk");
             } catch (e2) {
               // Fall through to VFS resolution
             }
@@ -50,7 +54,7 @@ export class ModuleSystem {
       const resolved = this.vfs.resolveModule(specifier, fromFile);
       if (!resolved) {
         throw new Error(
-          `Cannot resolve module '${specifier}' from '${fromFile}'`
+          `Cannot resolve module '${specifier}' from '${fromFile}'`,
         );
       }
 
@@ -75,7 +79,9 @@ export class ModuleSystem {
         this.moduleCache.set(filePath, parsed);
         return parsed;
       } catch (error) {
-        throw new Error(`Invalid JSON in ${filePath}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        throw new Error(
+          `Invalid JSON in ${filePath}: ${error instanceof Error ? error.message : "Unknown error"}`,
+        );
       }
     }
 
@@ -85,11 +91,15 @@ export class ModuleSystem {
     // For inline source maps, extract and store them for debug context
     if (this.debugMode && this.debugContext) {
       // Try to extract source map from inline comment
-      const sourceMapMatch = transpiledCode.match(/\/\/# sourceMappingURL=data:application\/json;base64,(.+)$/m);
+      const sourceMapMatch = transpiledCode.match(
+        /\/\/# sourceMappingURL=data:application\/json;base64,(.+)$/m,
+      );
       if (sourceMapMatch) {
         try {
           const sourceMapBase64 = sourceMapMatch[1];
-          const sourceMapJson = Buffer.from(sourceMapBase64, 'base64').toString('utf8');
+          const sourceMapJson = Buffer.from(sourceMapBase64, "base64").toString(
+            "utf8",
+          );
           const sourceMap = JSON.parse(sourceMapJson);
 
           // Store the extracted source map
@@ -99,7 +109,10 @@ export class ModuleSystem {
           // Minimal debug logging
           // console.log(`✅ [DEBUG] Source map extracted for ${filePath}`);
         } catch (error) {
-          console.warn(`❌ Failed to extract inline source map for ${filePath}:`, error);
+          console.warn(
+            `❌ Failed to extract inline source map for ${filePath}:`,
+            error,
+          );
         }
       }
     }
@@ -110,12 +123,14 @@ export class ModuleSystem {
     // Import getProvider function from common
     let getProvider;
     try {
-      const commonModule = require('../common');
+      const commonModule = require("../common");
       getProvider = commonModule.getProvider;
     } catch {
       // If common module doesn't exist, create a mock function
       getProvider = (type: string, alias?: string) => {
-        console.warn(`getProvider called with ${type}${alias ? ` (${alias})` : ''} but provider system not available`);
+        console.warn(
+          `getProvider called with ${type}${alias ? ` (${alias})` : ""} but provider system not available`,
+        );
         return {};
       };
     }
@@ -149,8 +164,8 @@ export class ModuleSystem {
         // Enable enhanced debugging options if in debug mode
         ...(this.debugMode && {
           displayErrors: true,
-          breakOnSigint: true
-        })
+          breakOnSigint: true,
+        }),
       };
 
       // Remove noisy script creation logs
@@ -170,7 +185,7 @@ export class ModuleSystem {
       if (this.debugContext) {
         this.debugContext.reportError(error, {
           filePath,
-          hasSourceMap: this.debugContext.hasSourceMap(filePath)
+          hasSourceMap: this.debugContext.hasSourceMap(filePath),
         });
       } else {
         console.error(`Error executing module ${filePath}:`, error);
@@ -189,17 +204,17 @@ export class ModuleSystem {
           esModuleInterop: true,
           allowSyntheticDefaultImports: true,
           strict: false,
-          sourceMap: false,  // Disable external source map
-          inlineSourceMap: true,  // Use inline source map
-          inlineSources: true,    // Include source content
-          sourceRoot: '',         // Use relative paths
+          sourceMap: false, // Disable external source map
+          inlineSourceMap: true, // Use inline source map
+          inlineSources: true, // Include source content
+          sourceRoot: "", // Use relative paths
         },
-        fileName: filename
+        fileName: filename,
       });
 
       return {
         code: result.outputText,
-        sourceMap: undefined  // Inline source map is embedded in code
+        sourceMap: undefined, // Inline source map is embedded in code
       };
     } else {
       // Non-debug mode: no source maps
@@ -213,7 +228,7 @@ export class ModuleSystem {
 
       return {
         code: result,
-        sourceMap: undefined
+        sourceMap: undefined,
       };
     }
   }
@@ -226,6 +241,4 @@ export class ModuleSystem {
   hasSourceMap(filePath: string): boolean {
     return this.sourceMaps.has(filePath);
   }
-
-
 }

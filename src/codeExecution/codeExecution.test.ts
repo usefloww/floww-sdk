@@ -137,7 +137,7 @@ describe("Code Execution", () => {
       executeUserProject({
         files,
         entryPoint: "error-main.handler",
-      })
+      }),
     ).rejects.toThrow("Something went wrong in buggy module");
   });
 
@@ -187,9 +187,9 @@ describe("Code Execution", () => {
       executeUserProject({
         files,
         entryPoint: "main.handler",
-      })
+      }),
     ).rejects.toThrow(
-      "Cannot resolve module './missing-module' from 'main.ts'"
+      "Cannot resolve module './missing-module' from 'main.ts'",
     );
   });
 
@@ -265,7 +265,7 @@ describe("Test wrapper", () => {
       `
       // Directly return the value since we can't import in this test scenario
       export default 1
-      `
+      `,
     );
 
     const wrappedResult = await executeUserProject(wrappedProject);

@@ -7,7 +7,7 @@ export interface FlowwConfig {
 }
 
 export interface ConfigSource {
-  source: 'default' | 'config' | 'env' | 'cli';
+  source: "default" | "config" | "env" | "cli";
   value: string;
 }
 

@@ -39,7 +39,8 @@
     "version:patch": "npm version patch --no-git-tag-version",
     "version:minor": "npm version minor --no-git-tag-version",
     "version:major": "npm version major --no-git-tag-version",
-    "version:prerelease": "npm version prerelease --preid=beta --no-git-tag-version"
+    "version:prerelease": "npm version prerelease --preid=beta --no-git-tag-version",
+    "lint": "oxlint"
   },
   "keywords": [
     "trigger",
@@ -79,6 +80,7 @@
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^24.6.2",
     "@types/node-cron": "^3.0.11",
+    "oxlint": "^1.24.0",
     "tsup": "^8.3.5",
     "tsx": "^4.19.2",
     "typescript": "^5.9.2",

@@ -1,8 +1,8 @@
 import { BaseProvider } from "./base";
 
 export class Slack extends BaseProvider {
-    providerType = 'slack';
+  providerType = "slack";
 
-    actions = {}
-    triggers = {}
+  actions = {};
+  triggers = {};
 }

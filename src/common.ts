@@ -1,6 +1,6 @@
 export type Handler<TEvent = any, TContext = any> = (
   ctx: TContext,
-  event: TEvent
+  event: TEvent,
 ) => void | Promise<void>;
 
 // Base trigger interface

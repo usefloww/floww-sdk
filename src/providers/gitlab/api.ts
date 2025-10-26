@@ -1,161 +1,172 @@
 export type GitLabApiConfig = {
-    baseUrl: string;
-    accessToken: string;
+  baseUrl: string;
+  accessToken: string;
 };
 
 export type GitLabWebhook = {
-    id: number;
-    url: string;
-    project_id?: number;
-    group_id?: number;
-    push_events: boolean;
-    issues_events: boolean;
-    merge_requests_events: boolean;
-    note_events: boolean;
-    [key: string]: any;
+  id: number;
+  url: string;
+  project_id?: number;
+  group_id?: number;
+  push_events: boolean;
+  issues_events: boolean;
+  merge_requests_events: boolean;
+  note_events: boolean;
+  [key: string]: any;
 };
 
 export type CreateWebhookOptions = {
-    projectId?: string;
-    groupId?: string;
-    url: string;
-    token?: string;
-    push_events?: boolean;
-    issues_events?: boolean;
-    merge_requests_events?: boolean;
-    note_events?: boolean;
-    [key: string]: any;
+  projectId?: string;
+  groupId?: string;
+  url: string;
+  token?: string;
+  push_events?: boolean;
+  issues_events?: boolean;
+  merge_requests_events?: boolean;
+  note_events?: boolean;
+  [key: string]: any;
 };
 
 export class GitLabApi {
-    private baseUrl: string;
-    private accessToken: string;
+  private baseUrl: string;
+  private accessToken: string;
 
-    constructor(config: GitLabApiConfig) {
-        this.baseUrl = config.baseUrl.replace(/\/$/, ''); // Remove trailing slash
-        this.accessToken = config.accessToken;
+  constructor(config: GitLabApiConfig) {
+    this.baseUrl = config.baseUrl.replace(/\/$/, ""); // Remove trailing slash
+    this.accessToken = config.accessToken;
+  }
+
+  private async request<T = any>(
+    method: string,
+    path: string,
+    body?: any,
+  ): Promise<T> {
+    const url = `${this.baseUrl}/api/v4${path}`;
+
+    const headers: Record<string, string> = {
+      "PRIVATE-TOKEN": this.accessToken,
+      "Content-Type": "application/json",
+    };
+
+    const options: RequestInit = {
+      method,
+      headers,
+    };
+
+    if (body) {
+      options.body = JSON.stringify(body);
     }
 
-    private async request<T = any>(
-        method: string,
-        path: string,
-        body?: any
-    ): Promise<T> {
-        const url = `${this.baseUrl}/api/v4${path}`;
+    const response = await fetch(url, options);
 
-        const headers: Record<string, string> = {
-            'PRIVATE-TOKEN': this.accessToken,
-            'Content-Type': 'application/json',
-        };
-
-        const options: RequestInit = {
-            method,
-            headers,
-        };
-
-        if (body) {
-            options.body = JSON.stringify(body);
-        }
-
-        const response = await fetch(url, options);
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(
-                `GitLab API error (${response.status}): ${errorText}`
-            );
-        }
-
-        return response.json() as Promise<T>;
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`GitLab API error (${response.status}): ${errorText}`);
     }
 
-    async get<T = any>(path: string): Promise<T> {
-        return this.request<T>('GET', path) as Promise<T>;
-    }
+    return response.json() as Promise<T>;
+  }
 
-    async post<T = any>(path: string, body?: any): Promise<T> {
-        return this.request<T>('POST', path, body) as Promise<T>;
-    }
+  async get<T = any>(path: string): Promise<T> {
+    return this.request<T>("GET", path) as Promise<T>;
+  }
 
-    async put<T = any>(path: string, body?: any): Promise<T> {
-        return this.request<T>('PUT', path, body) as Promise<T>;
-    }
+  async post<T = any>(path: string, body?: any): Promise<T> {
+    return this.request<T>("POST", path, body) as Promise<T>;
+  }
 
-    async delete<T = any>(path: string): Promise<T> {
-        return this.request<T>('DELETE', path) as Promise<T>;
-    }
+  async put<T = any>(path: string, body?: any): Promise<T> {
+    return this.request<T>("PUT", path, body) as Promise<T>;
+  }
 
-    // Webhook operations
-    async createProjectWebhook(
-        projectId: string,
-        options: Omit<CreateWebhookOptions, 'projectId' | 'groupId'>
-    ): Promise<GitLabWebhook> {
-        return this.post(`/projects/${encodeURIComponent(projectId)}/hooks`, {
-            url: options.url,
-            token: options.token,
-            push_events: options.push_events ?? false,
-            issues_events: options.issues_events ?? false,
-            merge_requests_events: options.merge_requests_events ?? false,
-            note_events: options.note_events ?? false,
-            ...options,
-        });
-    }
+  async delete<T = any>(path: string): Promise<T> {
+    return this.request<T>("DELETE", path) as Promise<T>;
+  }
 
-    async createGroupWebhook(
-        groupId: string,
-        options: Omit<CreateWebhookOptions, 'projectId' | 'groupId'>
-    ): Promise<GitLabWebhook> {
-        return this.post(`/groups/${encodeURIComponent(groupId)}/hooks`, {
-            url: options.url,
-            token: options.token,
-            push_events: options.push_events ?? false,
-            issues_events: options.issues_events ?? false,
-            merge_requests_events: options.merge_requests_events ?? false,
-            note_events: options.note_events ?? false,
-            ...options,
-        });
-    }
+  // Webhook operations
+  async createProjectWebhook(
+    projectId: string,
+    options: Omit<CreateWebhookOptions, "projectId" | "groupId">,
+  ): Promise<GitLabWebhook> {
+    return this.post(`/projects/${encodeURIComponent(projectId)}/hooks`, {
+      url: options.url,
+      token: options.token,
+      push_events: options.push_events ?? false,
+      issues_events: options.issues_events ?? false,
+      merge_requests_events: options.merge_requests_events ?? false,
+      note_events: options.note_events ?? false,
+      ...options,
+    });
+  }
 
-    async listProjectWebhooks(projectId: string): Promise<GitLabWebhook[]> {
-        return this.get(`/projects/${encodeURIComponent(projectId)}/hooks`);
-    }
+  async createGroupWebhook(
+    groupId: string,
+    options: Omit<CreateWebhookOptions, "projectId" | "groupId">,
+  ): Promise<GitLabWebhook> {
+    return this.post(`/groups/${encodeURIComponent(groupId)}/hooks`, {
+      url: options.url,
+      token: options.token,
+      push_events: options.push_events ?? false,
+      issues_events: options.issues_events ?? false,
+      merge_requests_events: options.merge_requests_events ?? false,
+      note_events: options.note_events ?? false,
+      ...options,
+    });
+  }
 
-    async listGroupWebhooks(groupId: string): Promise<GitLabWebhook[]> {
-        return this.get(`/groups/${encodeURIComponent(groupId)}/hooks`);
-    }
+  async listProjectWebhooks(projectId: string): Promise<GitLabWebhook[]> {
+    return this.get(`/projects/${encodeURIComponent(projectId)}/hooks`);
+  }
 
-    async deleteProjectWebhook(projectId: string, hookId: number): Promise<void> {
-        return this.delete(`/projects/${encodeURIComponent(projectId)}/hooks/${hookId}`);
-    }
+  async listGroupWebhooks(groupId: string): Promise<GitLabWebhook[]> {
+    return this.get(`/groups/${encodeURIComponent(groupId)}/hooks`);
+  }
 
-    async deleteGroupWebhook(groupId: string, hookId: number): Promise<void> {
-        return this.delete(`/groups/${encodeURIComponent(groupId)}/hooks/${hookId}`);
-    }
+  async deleteProjectWebhook(projectId: string, hookId: number): Promise<void> {
+    return this.delete(
+      `/projects/${encodeURIComponent(projectId)}/hooks/${hookId}`,
+    );
+  }
 
-    // Project operations
-    async getProject(projectId: string): Promise<any> {
-        return this.get(`/projects/${encodeURIComponent(projectId)}`);
-    }
+  async deleteGroupWebhook(groupId: string, hookId: number): Promise<void> {
+    return this.delete(
+      `/groups/${encodeURIComponent(groupId)}/hooks/${hookId}`,
+    );
+  }
 
-    async listProjects(): Promise<any[]> {
-        return this.get('/projects');
-    }
+  // Project operations
+  async getProject(projectId: string): Promise<any> {
+    return this.get(`/projects/${encodeURIComponent(projectId)}`);
+  }
 
-    // Merge request operations
-    async getMergeRequest(projectId: string, mergeRequestIid: number): Promise<any> {
-        return this.get(`/projects/${encodeURIComponent(projectId)}/merge_requests/${mergeRequestIid}`);
-    }
+  async listProjects(): Promise<any[]> {
+    return this.get("/projects");
+  }
 
-    async listMergeRequests(projectId: string): Promise<any[]> {
-        return this.get(`/projects/${encodeURIComponent(projectId)}/merge_requests`);
-    }
+  // Merge request operations
+  async getMergeRequest(
+    projectId: string,
+    mergeRequestIid: number,
+  ): Promise<any> {
+    return this.get(
+      `/projects/${encodeURIComponent(projectId)}/merge_requests/${mergeRequestIid}`,
+    );
+  }
 
-    // Issues operations
-    async getIssue(projectId: string, issueIid: number): Promise<any> {
-        return this.get(`/projects/${encodeURIComponent(projectId)}/issues/${issueIid}`);
-    }
+  async listMergeRequests(projectId: string): Promise<any[]> {
+    return this.get(
+      `/projects/${encodeURIComponent(projectId)}/merge_requests`,
+    );
+  }
 
-    async listIssues(projectId: string): Promise<any[]> {
-        return this.get(`/projects/${encodeURIComponent(projectId)}/issues`);
-    }
+  // Issues operations
+  async getIssue(projectId: string, issueIid: number): Promise<any> {
+    return this.get(
+      `/projects/${encodeURIComponent(projectId)}/issues/${issueIid}`,
+    );
+  }
+
+  async listIssues(projectId: string): Promise<any[]> {
+    return this.get(`/projects/${encodeURIComponent(projectId)}/issues`);
+  }
 }

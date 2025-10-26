@@ -1,10 +1,10 @@
-import fs from 'fs';
-import path from 'path';
-import { StoredAuth } from './authTypes';
-import { getFlowwConfigDir } from '../config/xdg';
+import fs from "fs";
+import path from "path";
+import { StoredAuth } from "./authTypes";
+import { getFlowwConfigDir } from "../config/xdg";
 
 const CONFIG_DIR = getFlowwConfigDir();
-const TOKEN_FILE = path.join(CONFIG_DIR, 'auth.json');
+const TOKEN_FILE = path.join(CONFIG_DIR, "auth.json");
 
 export function saveTokens(auth: StoredAuth): void {
   if (!fs.existsSync(CONFIG_DIR)) {
@@ -19,10 +19,10 @@ export function loadTokens(): StoredAuth | null {
     return null;
   }
   try {
-    const data = fs.readFileSync(TOKEN_FILE, 'utf-8');
+    const data = fs.readFileSync(TOKEN_FILE, "utf-8");
     return JSON.parse(data);
   } catch (error) {
-    console.error('Failed to load stored credentials');
+    console.error("Failed to load stored credentials");
     return null;
   }
 }

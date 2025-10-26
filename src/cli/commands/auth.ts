@@ -44,18 +44,18 @@ async function whoamiCommand() {
   logger.plain(`👤 Logged in as: ${tokens.user.email}`);
   logger.plain(`📧 User ID: ${tokens.user.id}`);
   logger.plain(
-    `⏰ Token expires: ${new Date(tokens.expiresAt).toLocaleString()}`
+    `⏰ Token expires: ${new Date(tokens.expiresAt).toLocaleString()}`,
   );
 
   if (isExpired) {
     logger.warn(
-      `Token is EXPIRED (expired ${Math.abs(expiresIn)} seconds ago)`
+      `Token is EXPIRED (expired ${Math.abs(expiresIn)} seconds ago)`,
     );
   } else {
     logger.success(
       `Token is valid (expires in ${expiresIn} seconds / ${Math.floor(
-        expiresIn / 60
-      )} minutes)`
+        expiresIn / 60,
+      )} minutes)`,
     );
   }
 

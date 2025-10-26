@@ -52,7 +52,7 @@ function ensureDockerfile(projectDir: string, projectConfig: any): string {
     const entrypoint = projectConfig.entrypoint || "main.ts";
     const dockerfileContent = defaultDockerfileContent.replace(
       "ENV FLOWW_ENTRYPOINT=main.ts",
-      `ENV FLOWW_ENTRYPOINT=${entrypoint}`
+      `ENV FLOWW_ENTRYPOINT=${entrypoint}`,
     );
     fs.writeFileSync(dockerfilePath, dockerfileContent.trim());
     logger.debugInfo("Created default Dockerfile");
@@ -86,7 +86,7 @@ async function selectWorkflow(): Promise<string> {
 
   if (workflows.length === 0) {
     logger.error(
-      "No workflows found. Create one first in the Floww dashboard."
+      "No workflows found. Create one first in the Floww dashboard.",
     );
     process.exit(1);
   }
@@ -105,7 +105,7 @@ async function selectWorkflow(): Promise<string> {
 
     const selectedId = await logger.select(
       "Select a workflow to deploy to:",
-      options
+      options,
     );
     const selectedWorkflow = workflows.find((w) => w.id === selectedId)!;
     logger.success(`Selected: ${selectedWorkflow.name}`);
@@ -148,7 +148,7 @@ export async function deployCommand() {
     } catch (error) {
       logger.error(
         "Initialization failed:",
-        error instanceof Error ? error.message : error
+        error instanceof Error ? error.message : error,
       );
       process.exit(1);
     }
@@ -170,7 +170,7 @@ export async function deployCommand() {
     } catch (error) {
       logger.error(
         "Workflow selection failed:",
-        error instanceof Error ? error.message : error
+        error instanceof Error ? error.message : error,
       );
       process.exit(1);
     }
@@ -202,14 +202,14 @@ export async function deployCommand() {
           "Failed to select workflow:",
           selectionError instanceof Error
             ? selectionError.message
-            : selectionError
+            : selectionError,
         );
         process.exit(1);
       }
     } else {
       logger.error(
         "Workflow not found or inaccessible:",
-        error instanceof Error ? error.message : error
+        error instanceof Error ? error.message : error,
       );
       logger.tip('Run "floww init" to select a different workflow');
       process.exit(1);
@@ -244,7 +244,7 @@ export async function deployCommand() {
         ...new Set(availability.unavailable.map((p) => p.type)),
       ];
       return { valid: false, unavailable: unavailableTypes };
-    }
+    },
   );
 
   if (!providerValidation.valid) {
@@ -278,7 +278,7 @@ export async function deployCommand() {
           cwd: sdkDir,
           stdio: logger.interactive ? "pipe" : "inherit",
           shell: "/bin/bash",
-        }
+        },
       );
     });
   }
@@ -288,7 +288,7 @@ export async function deployCommand() {
     "📦 Building runtime image",
     async () => {
       return await dockerBuildImage(projectConfig, projectDir);
-    }
+    },
   );
 
   const imageHash = await dockerGetImageHash({
@@ -306,7 +306,7 @@ export async function deployCommand() {
     } else {
       logger.error(
         "Failed to get push data:",
-        error instanceof Error ? error.message : error
+        error instanceof Error ? error.message : error,
       );
       process.exit(1);
     }
@@ -327,7 +327,7 @@ export async function deployCommand() {
           token: pushData.password,
         });
         await dockerPushImage({ imageUri: imageUri });
-      }
+      },
     );
   } else {
     logger.debugInfo("Runtime image already exists, skipping upload");
@@ -354,12 +354,12 @@ export async function deployCommand() {
         } else {
           logger.error(
             "Failed to create runtime:",
-            error instanceof Error ? error.message : error
+            error instanceof Error ? error.message : error,
           );
           process.exit(1);
         }
       }
-    }
+    },
   );
 
   // 7. Read project files and parse triggers
@@ -406,11 +406,11 @@ export async function deployCommand() {
       } catch (error) {
         logger.warn(
           "Failed to extract trigger metadata:",
-          error instanceof Error ? error.message : error
+          error instanceof Error ? error.message : error,
         );
         return [];
       }
-    }
+    },
   );
 
   // 8. Create workflow deployment with triggers metadata

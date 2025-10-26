@@ -14,7 +14,7 @@ export async function dockerRetagImage(args: {
 
 export async function dockerBuildImage(
   projectConfig: any,
-  projectDir: string
+  projectDir: string,
 ): Promise<DockerBuildResult> {
   const workloadId = projectConfig.workflowId || "unknown";
   const localImage = `floww:${workloadId}`;
@@ -76,7 +76,7 @@ export async function dockerLogin(args: {
       ],
       {
         all: true,
-      }
+      },
     );
   } catch (error) {
     logger.error("Docker registry login failed:", error);

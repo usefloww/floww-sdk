@@ -1,7 +1,7 @@
-import { loadTokens, saveTokens } from './authUtils';
-import { CLIAuth } from './auth';
-import { StoredAuth } from './authTypes';
-import { getConfig } from '../config/configUtils';
+import { loadTokens, saveTokens } from "./authUtils";
+import { CLIAuth } from "./auth";
+import { StoredAuth } from "./authTypes";
+import { getConfig } from "../config/configUtils";
 
 /**
  * Get a valid authentication token, refreshing if necessary
@@ -22,7 +22,7 @@ export async function getValidAuth(): Promise<StoredAuth | null> {
 
   // Check if token is expired or will expire soon (with 10 minute buffer for safety)
   const bufferMs = 10 * 60 * 1000; // 10 minutes
-  const isExpired = Date.now() >= (auth.expiresAt - bufferMs);
+  const isExpired = Date.now() >= auth.expiresAt - bufferMs;
 
   if (isExpired && auth.refreshToken) {
     return await refreshToken(auth);
@@ -49,7 +49,7 @@ async function refreshToken(auth: StoredAuth): Promise<StoredAuth | null> {
 
     return refreshedAuth;
   } catch (error) {
-    console.error('Failed to refresh token:', error);
+    console.error("Failed to refresh token:", error);
     return null;
   }
 }

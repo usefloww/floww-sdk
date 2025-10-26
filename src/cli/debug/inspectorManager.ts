@@ -1,5 +1,5 @@
-import * as inspector from 'inspector';
-import * as vm from 'vm';
+import * as inspector from "inspector";
+import * as vm from "vm";
 
 export interface BreakpointLocation {
   lineNumber: number;
@@ -26,7 +26,7 @@ export class InspectorManager {
 
   async startInspector(): Promise<void> {
     if (this.isRunning) {
-      console.warn('Inspector is already running');
+      console.warn("Inspector is already running");
       return;
     }
 
@@ -53,7 +53,7 @@ export class InspectorManager {
       // Remove verbose inspector logs - users just need to know it's working
       // console.log('✅ Inspector session established');
     } catch (error) {
-      console.error('Failed to start inspector:', error);
+      console.error("Failed to start inspector:", error);
       throw error;
     }
   }
@@ -67,36 +67,39 @@ export class InspectorManager {
       this.session.disconnect();
       inspector.close();
       this.isRunning = false;
-      console.log('🔍 Inspector stopped');
+      console.log("🔍 Inspector stopped");
     } catch (error) {
-      console.error('Error stopping inspector:', error);
+      console.error("Error stopping inspector:", error);
     }
   }
 
   private setupInspectorEvents(): void {
     if (!this.session) return;
 
-    this.session.on('Debugger.paused', (params: any) => {
-      console.log('🔍 Debugger paused:', params.reason || 'unknown reason');
+    this.session.on("Debugger.paused", (params: any) => {
+      console.log("🔍 Debugger paused:", params.reason || "unknown reason");
       if (this.callbacks.onBreakpoint) {
         this.callbacks.onBreakpoint(params);
       }
     });
 
-    this.session.on('Runtime.consoleAPICalled', (params) => {
+    this.session.on("Runtime.consoleAPICalled", (params) => {
       if (this.callbacks.onConsoleApiCalled) {
         this.callbacks.onConsoleApiCalled(params);
       }
     });
 
-    this.session.on('Runtime.exceptionThrown', (params: any) => {
-      console.error('🐛 Exception in debugger:', params.exceptionDetails || params);
+    this.session.on("Runtime.exceptionThrown", (params: any) => {
+      console.error(
+        "🐛 Exception in debugger:",
+        params.exceptionDetails || params,
+      );
       if (this.callbacks.onExceptionThrown) {
         this.callbacks.onExceptionThrown(params);
       }
     });
 
-    this.session.on('Debugger.scriptParsed', (params) => {
+    this.session.on("Debugger.scriptParsed", (params) => {
       if (this.callbacks.onScriptParsed) {
         this.callbacks.onScriptParsed(params);
       }
@@ -118,7 +121,7 @@ export class InspectorManager {
       };
 
       // Enable Runtime domain
-      this.session!.post('Runtime.enable', (err) => {
+      this.session!.post("Runtime.enable", (err) => {
         if (err) {
           reject(err);
         } else {
@@ -128,7 +131,7 @@ export class InspectorManager {
       });
 
       // Enable Debugger domain
-      this.session!.post('Debugger.enable', (err) => {
+      this.session!.post("Debugger.enable", (err) => {
         if (err) {
           reject(err);
         } else {
@@ -139,65 +142,79 @@ export class InspectorManager {
     });
   }
 
-  async setBreakpoint(scriptId: string, lineNumber: number, columnNumber?: number): Promise<any> {
+  async setBreakpoint(
+    scriptId: string,
+    lineNumber: number,
+    columnNumber?: number,
+  ): Promise<any> {
     if (!this.session) {
-      throw new Error('Inspector session not established');
+      throw new Error("Inspector session not established");
     }
 
     return new Promise((resolve, reject) => {
-      this.session!.post('Debugger.setBreakpoint', {
-        location: {
-          scriptId,
-          lineNumber,
-          columnNumber
-        }
-      }, (err, result) => {
-        if (err) {
-          reject(err);
-        } else {
-          console.log(`🔴 Breakpoint set at ${scriptId}:${lineNumber}${columnNumber ? `:${columnNumber}` : ''}`);
+      this.session!.post(
+        "Debugger.setBreakpoint",
+        {
+          location: {
+            scriptId,
+            lineNumber,
+            columnNumber,
+          },
+        },
+        (err, result) => {
+          if (err) {
+            reject(err);
+          } else {
+            console.log(
+              `🔴 Breakpoint set at ${scriptId}:${lineNumber}${columnNumber ? `:${columnNumber}` : ""}`,
+            );
 
-          // Store breakpoint information
-          const breakpoints = this.breakpoints.get(scriptId) || [];
-          breakpoints.push({ lineNumber, columnNumber });
-          this.breakpoints.set(scriptId, breakpoints);
+            // Store breakpoint information
+            const breakpoints = this.breakpoints.get(scriptId) || [];
+            breakpoints.push({ lineNumber, columnNumber });
+            this.breakpoints.set(scriptId, breakpoints);
 
-          resolve(result);
-        }
-      });
+            resolve(result);
+          }
+        },
+      );
     });
   }
 
   async removeBreakpoint(breakpointId: string): Promise<void> {
     if (!this.session) {
-      throw new Error('Inspector session not established');
+      throw new Error("Inspector session not established");
     }
 
     return new Promise((resolve, reject) => {
-      this.session!.post('Debugger.removeBreakpoint', {
-        breakpointId
-      }, (err) => {
-        if (err) {
-          reject(err);
-        } else {
-          console.log(`🟢 Breakpoint removed: ${breakpointId}`);
-          resolve();
-        }
-      });
+      this.session!.post(
+        "Debugger.removeBreakpoint",
+        {
+          breakpointId,
+        },
+        (err) => {
+          if (err) {
+            reject(err);
+          } else {
+            console.log(`🟢 Breakpoint removed: ${breakpointId}`);
+            resolve();
+          }
+        },
+      );
     });
   }
 
   async resume(): Promise<void> {
     if (!this.session) {
-      throw new Error('Inspector session not established');
+      throw new Error("Inspector session not established");
     }
 
     return new Promise((resolve, reject) => {
-      this.session!.post('Debugger.resume', (err) => {
+      this.session!.post("Debugger.resume", (err) => {
         if (err) {
           reject(err);
         } else {
-          console.log('▶️  Execution resumed');
+          console.log("▶️  Execution resumed");
           resolve();
         }
       });
@@ -206,15 +223,15 @@ export class InspectorManager {
 
   async stepOver(): Promise<void> {
     if (!this.session) {
-      throw new Error('Inspector session not established');
+      throw new Error("Inspector session not established");
     }
 
     return new Promise((resolve, reject) => {
-      this.session!.post('Debugger.stepOver', (err) => {
+      this.session!.post("Debugger.stepOver", (err) => {
         if (err) {
           reject(err);
         } else {
-          console.log('⏭️  Step over');
+          console.log("⏭️  Step over");
           resolve();
         }
       });
@@ -223,15 +240,15 @@ export class InspectorManager {
 
   async stepInto(): Promise<void> {
     if (!this.session) {
-      throw new Error('Inspector session not established');
+      throw new Error("Inspector session not established");
     }
 
     return new Promise((resolve, reject) => {
-      this.session!.post('Debugger.stepInto', (err) => {
+      this.session!.post("Debugger.stepInto", (err) => {
         if (err) {
           reject(err);
         } else {
-          console.log('⬇️  Step into');
+          console.log("⬇️  Step into");
           resolve();
         }
       });
@@ -240,47 +257,56 @@ export class InspectorManager {
 
   async stepOut(): Promise<void> {
     if (!this.session) {
-      throw new Error('Inspector session not established');
+      throw new Error("Inspector session not established");
     }
 
     return new Promise((resolve, reject) => {
-      this.session!.post('Debugger.stepOut', (err) => {
+      this.session!.post("Debugger.stepOut", (err) => {
         if (err) {
           reject(err);
         } else {
-          console.log('⬆️  Step out');
+          console.log("⬆️  Step out");
           resolve();
         }
       });
     });
   }
 
-  async evaluateExpression(expression: string, contextId?: number): Promise<any> {
+  async evaluateExpression(
+    expression: string,
+    contextId?: number,
+  ): Promise<any> {
     if (!this.session) {
-      throw new Error('Inspector session not established');
+      throw new Error("Inspector session not established");
     }
 
     return new Promise((resolve, reject) => {
-      this.session!.post('Runtime.evaluate', {
-        expression,
-        contextId,
-        returnByValue: true,
-        generatePreview: true
-      }, (err, result) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(result);
-        }
-      });
+      this.session!.post(
+        "Runtime.evaluate",
+        {
+          expression,
+          contextId,
+          returnByValue: true,
+          generatePreview: true,
+        },
+        (err, result) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(result);
+          }
+        },
+      );
     });
   }
 
   async attachToVMContext(vmContext: vm.Context): Promise<void> {
     // Note: Direct VM context attachment is complex in Node.js
     // This is a placeholder for potential future implementation
-    console.log('ℹ️  VM Context attachment is not directly supported');
-    console.log('   Use --inspect flag with node directly for full VM debugging');
+    console.log("ℹ️  VM Context attachment is not directly supported");
+    console.log(
+      "   Use --inspect flag with node directly for full VM debugging",
+    );
   }
 
   setCallbacks(callbacks: InspectorSessionCallbacks): void {
@@ -301,11 +327,11 @@ export class InspectorManager {
 
   async getScripts(): Promise<any[]> {
     if (!this.session) {
-      throw new Error('Inspector session not established');
+      throw new Error("Inspector session not established");
     }
 
     return new Promise((resolve, reject) => {
-      this.session!.post('Debugger.getScriptSource', {}, (err, result) => {
+      this.session!.post("Debugger.getScriptSource", {}, (err, result) => {
         if (err) {
           reject(err);
         } else {
@@ -318,15 +344,15 @@ export class InspectorManager {
   // Helper method to enable profiling
   async enableProfiling(): Promise<void> {
     if (!this.session) {
-      throw new Error('Inspector session not established');
+      throw new Error("Inspector session not established");
     }
 
     return new Promise((resolve, reject) => {
-      this.session!.post('Profiler.enable', (err) => {
+      this.session!.post("Profiler.enable", (err) => {
         if (err) {
           reject(err);
         } else {
-          console.log('📊 Profiler enabled');
+          console.log("📊 Profiler enabled");
           resolve();
         }
       });
@@ -335,15 +361,15 @@ export class InspectorManager {
 
   async startProfiling(title?: string): Promise<void> {
     if (!this.session) {
-      throw new Error('Inspector session not established');
+      throw new Error("Inspector session not established");
     }
 
     return new Promise((resolve, reject) => {
-      this.session!.post('Profiler.start', { title }, (err) => {
+      this.session!.post("Profiler.start", { title }, (err) => {
         if (err) {
           reject(err);
         } else {
-          console.log(`📈 Profiling started${title ? `: ${title}` : ''}`);
+          console.log(`📈 Profiling started${title ? `: ${title}` : ""}`);
           resolve();
         }
       });
@@ -352,15 +378,15 @@ export class InspectorManager {
 
   async stopProfiling(): Promise<any> {
     if (!this.session) {
-      throw new Error('Inspector session not established');
+      throw new Error("Inspector session not established");
     }
 
     return new Promise((resolve, reject) => {
-      this.session!.post('Profiler.stop', (err, result) => {
+      this.session!.post("Profiler.stop", (err, result) => {
         if (err) {
           reject(err);
         } else {
-          console.log('📉 Profiling stopped');
+          console.log("📉 Profiling stopped");
           resolve(result);
         }
       });

@@ -129,7 +129,7 @@ export class FlowwLogger {
           // In non-interactive mode, show more details but still controlled
           this._consola.error(
             fullMessage,
-            isDebugMode ? details : details.message
+            isDebugMode ? details : details.message,
           );
         } else {
           this._consola.error(fullMessage, details);
@@ -217,7 +217,7 @@ export class FlowwLogger {
    */
   async confirm(
     message: string,
-    defaultValue: boolean = true
+    defaultValue: boolean = true,
   ): Promise<boolean> {
     if (!isInteractive) {
       // In non-interactive mode, return default value
@@ -243,7 +243,7 @@ export class FlowwLogger {
    */
   async select<T extends string>(
     message: string,
-    options: Array<{ value: T; label: string; hint?: string }>
+    options: Array<{ value: T; label: string; hint?: string }>,
   ): Promise<T> {
     if (!isInteractive) {
       // In non-interactive mode, return first option
@@ -271,7 +271,7 @@ export class FlowwLogger {
   async text(
     message: string,
     placeholder?: string,
-    defaultValue?: string
+    defaultValue?: string,
   ): Promise<string> {
     if (!isInteractive) {
       // In non-interactive mode, return default value or placeholder
@@ -414,7 +414,7 @@ if (isDebugMode) {
   process.on("unhandledRejection", (reason, promise) => {
     logger.consola.error(
       "\n🐛 DEBUG: Unhandled Promise Rejection at:",
-      promise
+      promise,
     );
     logger.consola.error("Reason:", reason);
     if (reason instanceof Error) {

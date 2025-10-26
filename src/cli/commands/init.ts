@@ -18,7 +18,7 @@ interface InitOptions {
 }
 
 export async function initCommand(
-  options: InitOptions = {}
+  options: InitOptions = {},
 ): Promise<string | null> {
   if (!options.silent) {
     logger.info("Initializing new Floww project");
@@ -29,7 +29,7 @@ export async function initCommand(
     if (!options.silent) {
       logger.error("floww.yaml already exists in this directory.");
       logger.plain.error(
-        "   Use --force to overwrite or run this command in a different directory."
+        "   Use --force to overwrite or run this command in a different directory.",
       );
     }
     return null;
@@ -50,7 +50,7 @@ export async function initCommand(
       }
       if (!/^[a-zA-Z0-9\-_\s]+$/.test(name)) {
         logger.error(
-          "Name can only contain letters, numbers, spaces, hyphens, and underscores"
+          "Name can only contain letters, numbers, spaces, hyphens, and underscores",
         );
         return null;
       }
@@ -84,7 +84,7 @@ export async function initCommand(
     const exampleFile = path.join(process.cwd(), "main.ts");
     if (!fs.existsSync(exampleFile) && !options.silent) {
       const shouldCreateExample = await logger.confirm(
-        "Create example main.ts file?"
+        "Create example main.ts file?",
       );
       if (shouldCreateExample) {
         createExampleWorkflow(exampleFile);

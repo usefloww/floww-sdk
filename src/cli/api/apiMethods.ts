@@ -104,7 +104,7 @@ export interface PushTokenResponse {
 // Helper function to make authenticated API calls
 async function makeApiCall(
   endpoint: string,
-  options: any = {}
+  options: any = {},
 ): Promise<Response> {
   const auth = await getValidAuth();
 
@@ -156,7 +156,7 @@ export async function fetchWorkflow(workflowId: string): Promise<Workflow> {
 export async function createWorkflow(
   name: string,
   namespaceId: string,
-  description?: string
+  description?: string,
 ): Promise<Workflow> {
   const response = await makeApiCall("/workflows", {
     method: "POST",
@@ -175,7 +175,7 @@ export async function createWorkflow(
 // Helper function to read project files
 export async function readProjectFiles(
   projectDir: string,
-  entrypoint: string
+  entrypoint: string,
 ): Promise<WorkflowDeploymentUserCode> {
   // Import fs and path dynamically to handle bundling issues
   const fs = await import("fs/promises");
@@ -197,7 +197,7 @@ export async function readProjectFiles(
       if (entry.isDirectory()) {
         if (
           !["node_modules", ".git", "dist", ".floww", "pulumi-state"].includes(
-            entry.name
+            entry.name,
           )
         ) {
           await readDirectory(fullPath, relativeFilePath);
@@ -234,7 +234,7 @@ export class ImageAlreadyExistsError extends Error {
 
 // Runtime API methods
 export async function getPushData(
-  image_hash: string
+  image_hash: string,
 ): Promise<PushTokenResponse> {
   const response = await makeApiCall("/runtimes/push_token", {
     method: "POST",
@@ -265,7 +265,7 @@ export class RuntimeAlreadyExistsError extends Error {
 }
 
 export async function createRuntime(
-  runtimeData: RuntimeCreateRequest
+  runtimeData: RuntimeCreateRequest,
 ): Promise<RuntimeCreateResponse> {
   const response = await makeApiCall("/runtimes", {
     method: "POST",
@@ -289,7 +289,7 @@ export async function createRuntime(
 }
 
 export async function getRuntimeStatus(
-  runtimeId: string
+  runtimeId: string,
 ): Promise<RuntimeStatusResponse> {
   const response = await makeApiCall(`/runtimes/${runtimeId}`, {
     method: "GET",
@@ -301,7 +301,7 @@ export async function getRuntimeStatus(
 }
 
 export async function createWorkflowDeployment(
-  deploymentData: WorkflowDeploymentCreateRequest
+  deploymentData: WorkflowDeploymentCreateRequest,
 ): Promise<WorkflowDeploymentResponse> {
   const response = await makeApiCall("/workflow_deployments", {
     method: "POST",
@@ -314,7 +314,7 @@ export async function createWorkflowDeployment(
 }
 
 export async function listWorkflowDeployments(
-  workflowId?: string
+  workflowId?: string,
 ): Promise<WorkflowDeploymentResponse[]> {
   const queryParams = workflowId ? `?workflow_id=${workflowId}` : "";
   const response = await makeApiCall(`/workflow_deployments${queryParams}`);
@@ -375,7 +375,7 @@ export async function fetchProviders(): Promise<Provider[]> {
 }
 
 export async function fetchProviderType(
-  providerType: string
+  providerType: string,
 ): Promise<ProviderType> {
   const response = await makeApiCall(`/provider_types/${providerType}`);
   if (!response.ok) {
@@ -385,7 +385,7 @@ export async function fetchProviderType(
 }
 
 export async function createProvider(
-  providerData: ProviderCreateRequest
+  providerData: ProviderCreateRequest,
 ): Promise<Provider> {
   const response = await makeApiCall("/providers", {
     method: "POST",
@@ -399,7 +399,7 @@ export async function createProvider(
 
 export async function updateProvider(
   providerId: string,
-  updateData: ProviderUpdateRequest
+  updateData: ProviderUpdateRequest,
 ): Promise<Provider> {
   const response = await makeApiCall(`/providers/${providerId}`, {
     method: "PATCH",

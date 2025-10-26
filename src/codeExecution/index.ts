@@ -16,7 +16,7 @@ async function walkDirectory(
   dir: string,
   baseDir: string,
   excludeDirs: string[],
-  filesMap: Record<string, string>
+  filesMap: Record<string, string>,
 ): Promise<void> {
   const entries = await fs.readdir(dir, { withFileTypes: true });
 
@@ -45,7 +45,7 @@ async function walkDirectory(
 
 export async function getUserProject(
   filePath: string,
-  entryPoint: string
+  entryPoint: string,
 ): Promise<ExecuteUserProjectOptions> {
   const filesMap: Record<string, string> = {};
 
@@ -63,7 +63,7 @@ export async function getUserProject(
 
 export async function wrapUserProject(
   executionResult: any,
-  newContent: string
+  newContent: string,
 ): Promise<ExecuteUserProjectOptions> {
   // Simple test wrapper API: wrapUserProject(executionResult, newContent)
   // Return a new project with just the new content
@@ -76,7 +76,7 @@ export async function wrapUserProject(
 }
 
 export async function executeUserProject(
-  options: ExecuteUserProjectOptions
+  options: ExecuteUserProjectOptions,
 ): Promise<any> {
   const { files, entryPoint, debugMode = false, debugContext } = options;
 
