@@ -370,8 +370,8 @@ export async function fetchProviders(): Promise<Provider[]> {
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}: ${await response.text()}`);
   }
-  const data = (await response.json()) as { providers: Provider[] };
-  return data.providers;
+  const data = (await response.json()) as { results: Provider[] };
+  return data.results;
 }
 
 export async function fetchProviderType(

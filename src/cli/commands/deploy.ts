@@ -120,24 +120,56 @@ async function selectWorkflow(): Promise<string> {
   }
 }
 
+function convertTriggersToMetadata(triggers: any[]): any[] {
+  if (!Array.isArray(triggers)) {
+    logger.warn("Triggers is not an array, returning empty metadata");
+    return [];
+  }
+
+  return triggers.map((trigger: any) => {
+    const metadata: any = { type: trigger.type };
+
+    if (trigger.type === "webhook") {
+      // Only include path if explicitly set by user
+      // Provider webhooks (without path) will get auto-generated UUID paths
+      if (trigger.path) {
+        metadata.path = trigger.path;
+      }
+      metadata.method = trigger.method || "POST";
+    } else if (trigger.type === "cron") {
+      metadata.expression = trigger.expression;
+    } else if (trigger.type === "realtime") {
+      metadata.channel = trigger.channel;
+    }
+
+    return metadata;
+  });
+}
+
 /**
- * Deploy the triggers to the server
+ * Deploy Command - Build and deploy workflow to production
  *
- * - Check workflow id to deploy to (read from floww.yaml)
- *    - if not provided, ask user to select a workflow from list or create new one
- *    - if provided, check if workflow exists
+ * Flow:
  *
- * - Update the runtime if needed
- *    - build the runtime docker image (build with default if Dockerfile is not provided)
- *    - get token to push to docker registry
- *    - push the runtime docker image to the docker registry
- *    - create new runtime in backend
+ * Prerequisites:
+ * 1. Auto-initialize project if needed (floww.yaml)
+ * 2. Resolve workflow from config (verify it exists)
  *
- * - Update the triggers
- *    - post request to backend to update code
+ * Checks:
+ * 3. Execute user code to extract triggers and providers
+ * 4. Validate all providers are configured (fail if not)
+ *
+ * Deploy:
+ * 5. Build and push runtime Docker image
+ * 6. Create runtime environment in backend
+ * 7. Deploy code and trigger metadata
  */
 export async function deployCommand() {
   const projectDir = process.cwd();
+
+  // ============================================================================
+  // PREREQUISITES: Initialize project and resolve workflow
+  // ============================================================================
 
   // Auto-initialize if no config exists
   if (!hasProjectConfig()) {
@@ -217,10 +249,15 @@ export async function deployCommand() {
     }
   }
 
-  // 2. Validate providers are configured (non-interactive check for deploy)
+  // ============================================================================
+  // CHECKS: Execute user code and validate providers
+  // ============================================================================
+
   const entrypoint = projectConfig.entrypoint || "main.ts";
-  const providerValidation = await logger.debugTask(
-    "Validating providers",
+
+  // Execute user code once to get both triggers and providers
+  const executionResult = await logger.debugTask(
+    "Executing user code",
     async () => {
       // Resolve workflow and fetch provider configs
       const workflowConfig = await resolveWorkflow(projectConfig);
@@ -228,32 +265,39 @@ export async function deployCommand() {
         workflowConfig.namespaceId,
       );
 
-      // Execute user code to get provider usage
-      const result = await executeUserCode(entrypoint, providerConfigs);
-
-      if (result.usedProviders.length === 0) {
-        return { valid: true, unavailable: [] };
-      }
-
-      // Check provider availability (non-interactive)
-      const availability = await checkProviders(result.usedProviders);
-
-      if (availability.unavailable.length === 0) {
-        return { valid: true, unavailable: [] };
-      }
-
-      const unavailableTypes = [
-        ...new Set(availability.unavailable.map((p) => p.type)),
-      ];
-      return { valid: false, unavailable: unavailableTypes };
+      // Execute user code to get triggers and provider usage
+      return await executeUserCode(entrypoint, providerConfigs);
     },
   );
 
-  if (!providerValidation.valid) {
-    logger.error("Missing providers detected:", providerValidation.unavailable);
-    logger.tip('Run "floww dev" to set up missing providers interactively');
-    process.exit(1);
+  // Validate all providers are configured
+  if (executionResult.usedProviders.length > 0) {
+    const providerValidation = await logger.debugTask(
+      "Validating providers",
+      async () => {
+        const availability = await checkProviders(executionResult.usedProviders);
+
+        if (availability.unavailable.length === 0) {
+          return { valid: true, unavailable: [] };
+        }
+
+        const unavailableTypes = [
+          ...new Set(availability.unavailable.map((p) => p.type)),
+        ];
+        return { valid: false, unavailable: unavailableTypes };
+      },
+    );
+
+    if (!providerValidation.valid) {
+      logger.error("Missing providers detected:", providerValidation.unavailable);
+      logger.tip('Run "floww dev" to set up missing providers interactively');
+      process.exit(1);
+    }
   }
+
+  // ============================================================================
+  // DEPLOY: Build runtime and deploy code
+  // ============================================================================
 
   console.log("🚀 Starting deployment...");
 
@@ -364,56 +408,11 @@ export async function deployCommand() {
     },
   );
 
-  // 7. Read project files and parse triggers
+  // 7. Read project files
   const userCode = await readProjectFiles(projectDir, entrypoint);
 
-  // Parse triggers to extract metadata
-  const { executeUserProject } = await import("@/codeExecution");
-
-  const triggersMetadata = await logger.debugTask(
-    "Extracting trigger metadata",
-    async () => {
-      try {
-        // Use the files we already read
-        const entryPointName = entrypoint.replace(/\.ts$/, "") + ".default";
-        const module = await executeUserProject({
-          files: userCode.files,
-          entryPoint: entryPointName,
-        });
-        const triggers = module.default;
-
-        if (!Array.isArray(triggers)) {
-          throw new Error("Triggers file must export an array of triggers");
-        }
-
-        // Extract metadata from triggers
-        return triggers.map((trigger: any) => {
-          const metadata: any = { type: trigger.type };
-
-          if (trigger.type === "webhook") {
-            // Only include path if explicitly set by user
-            // Provider webhooks (without path) will get auto-generated UUID paths
-            if (trigger.path) {
-              metadata.path = trigger.path;
-            }
-            metadata.method = trigger.method || "POST";
-          } else if (trigger.type === "cron") {
-            metadata.expression = trigger.expression;
-          } else if (trigger.type === "realtime") {
-            metadata.channel = trigger.channel;
-          }
-
-          return metadata;
-        });
-      } catch (error) {
-        logger.warn(
-          "Failed to extract trigger metadata:",
-          error instanceof Error ? error.message : error,
-        );
-        return [];
-      }
-    },
-  );
+  // Convert triggers to metadata format for API
+  const triggersMetadata = convertTriggersToMetadata(executionResult.triggers);
 
   // 8. Create workflow deployment with triggers metadata
   const deployment = await logger.task("🚀 Deploying workflow", async () => {
