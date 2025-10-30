@@ -38,11 +38,16 @@ export class ModuleSystem {
           const req = createRequire(process.cwd() + "/package.json");
           return req(specifier);
         } catch (e) {
-          // Handle case-insensitive SDK package name
-          if (specifier.toLowerCase() === "@developerflows/floww-sdk") {
+          // Handle case-insensitive SDK package name and subpaths
+          if (specifier.toLowerCase().startsWith("@developerflows/floww-sdk")) {
             try {
               const req = createRequire(process.cwd() + "/package.json");
-              return req("@DeveloperFlows/floww-sdk");
+              // Replace the package name while preserving the subpath
+              const correctedSpecifier = specifier.replace(
+                /^@developerflows\/floww-sdk/i,
+                "@DeveloperFlows/floww-sdk"
+              );
+              return req(correctedSpecifier);
             } catch (e2) {
               // Fall through to VFS resolution
             }

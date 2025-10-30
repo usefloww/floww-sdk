@@ -34,13 +34,28 @@ export abstract class BaseProvider implements Provider {
   }
 
   protected getSecret(key: string): string {
-    const value = this.secrets[key];
-    if (!value) {
-      throw new Error(
-        `${this.providerType} credential '${this.credentialName}' not configured. Missing secret: ${key}`
-      );
+    // Check secrets first (from backend credentials)
+    const secretValue = this.secrets[key];
+    if (secretValue) {
+      return secretValue;
     }
-    return value;
+
+    // Fallback to config (allows passing API keys directly)
+    const configValue = this.config[key];
+    if (configValue) {
+      return configValue;
+    }
+
+    // Finally check environment variables (e.g., OPENAI_API_KEY)
+    const envKey = `${this.providerType.toUpperCase()}_${key.replace(/([A-Z])/g, '_$1').toUpperCase()}`;
+    const envValue = process.env[envKey];
+    if (envValue) {
+      return envValue;
+    }
+
+    throw new Error(
+      `${this.providerType} credential '${this.credentialName}' not configured. Missing secret: ${key}`,
+    );
   }
 
   protected hasSecret(key: string): boolean {

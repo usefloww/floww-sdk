@@ -1,0 +1,4 @@
+workflowId: ddef71b2-3ecc-4fdf-865b-957269104022
+name: test
+version: 1.0.0
+entrypoint: main.ts

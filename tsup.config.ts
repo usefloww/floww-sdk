@@ -34,4 +34,12 @@ export default defineConfig([
     ],
     noExternal: [],
   },
+  // AI module build
+  {
+    entry: ['src/ai/index.ts'],
+    format: ['cjs', 'esm'],
+    dts: true,
+    outDir: 'dist/ai',
+    clean: false,
+  },
 ]);

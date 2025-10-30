@@ -1,0 +1,9 @@
+{
+  "name": "floww-ai-example",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "@DeveloperFlows/floww-sdk": "workspace:*",
+    "zod": "^3.23.8"
+  }
+}

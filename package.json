@@ -21,6 +21,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
+    },
+    "./ai": {
+      "types": "./dist/ai/index.d.ts",
+      "import": "./dist/ai/index.mjs",
+      "require": "./dist/ai/index.js"
     }
   },
   "files": [
@@ -53,11 +58,15 @@
   "packageManager": "pnpm@10.9.0",
   "dependencies": {
     "@DeveloperFlows/floww-sdk": "link:",
+    "@ai-sdk/anthropic": "^2.0.39",
+    "@ai-sdk/google": "^2.0.25",
+    "@ai-sdk/openai": "^2.0.58",
     "@clack/core": "^0.5.0",
     "@clack/prompts": "^0.11.0",
     "@slack/web-api": "^7.12.0",
     "@types/inquirer": "^9.0.9",
     "@types/jsonwebtoken": "^9.0.10",
+    "ai": "6.0.0-beta.88",
     "centrifuge": "^5.2.4",
     "chalk": "^5.6.2",
     "chokidar": "^4.0.3",
@@ -75,7 +84,8 @@
     "node-fetch": "^3.3.2",
     "open": "^10.2.0",
     "pino-pretty": "^13.1.1",
-    "react": "^19.2.0"
+    "react": "^19.2.0",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",

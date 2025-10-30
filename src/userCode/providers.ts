@@ -1,6 +1,9 @@
 import { Builtin } from "@/providers";
 import { Gitlab } from "../providers/gitlab";
 import { Slack } from "../providers/slack";
+import { OpenAI } from "../providers/ai/openai";
+import { Anthropic } from "../providers/ai/anthropic";
+import { GoogleAI } from "../providers/ai/google";
 
 const _usedProviders = new Set<string>();
 const _registeredTriggers = new Set<any>();
@@ -59,6 +62,9 @@ const providers = {
   gitlab: Gitlab,
   slack: Slack,
   builtin: Builtin,
+  openai: OpenAI,
+  anthropic: Anthropic,
+  google: GoogleAI,
 };
 
 type ProviderName = keyof typeof providers;
