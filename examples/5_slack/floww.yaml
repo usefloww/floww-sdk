@@ -1,4 +1,4 @@
-workflowId: 4deb3346-8928-4c1a-a6cd-e37f38cda1d6
-name: Gitlab
-description: Gitlab Example
+workflowId: 7d58e7e4-eaba-4efd-b2a3-a7532321020d
+name: Slack
 version: 1.0.0
+entrypoint: main.ts

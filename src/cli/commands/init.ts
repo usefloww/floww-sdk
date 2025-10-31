@@ -28,7 +28,7 @@ export async function initCommand(
   if (hasProjectConfig() && !options.force) {
     if (!options.silent) {
       logger.error("floww.yaml already exists in this directory.");
-      logger.plain.error(
+      logger.error(
         "   Use --force to overwrite or run this command in a different directory.",
       );
     }

@@ -26,8 +26,10 @@ export const weatherCheck = builtin.triggers.onCron({
     try {
       const result = await generateText({
         model: openai.models.gpt4oMini,
-        system: "You are a helpful weather assistant. Use the getWeather tool to check weather, then provide a natural language response describing the weather.",
-        prompt: "What's the weather like in San Francisco? Please use the weather tool and then tell me about it.",
+        system:
+          "You are a helpful weather assistant. Use the getWeather tool to check weather, then provide a natural language response describing the weather.",
+        prompt:
+          "What's the weather like in San Francisco? Please use the weather tool and then tell me about it.",
         tools: {
           getWeather: {
             description: "Get the current weather for a city",
@@ -38,7 +40,8 @@ export const weatherCheck = builtin.triggers.onCron({
               // Simulated weather data
               const temp = Math.floor(Math.random() * 15) + 15; // 15-30°C
               const conditions = ["sunny", "cloudy", "rainy", "partly cloudy"];
-              const condition = conditions[Math.floor(Math.random() * conditions.length)];
+              const condition =
+                conditions[Math.floor(Math.random() * conditions.length)];
 
               return {
                 city,

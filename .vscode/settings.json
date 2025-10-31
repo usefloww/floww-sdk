@@ -20,6 +20,4 @@
     "editor.formatOnSave": true
   },
   "typescript.tsdk": "sdk/node_modules/typescript/lib"
-
-
 }

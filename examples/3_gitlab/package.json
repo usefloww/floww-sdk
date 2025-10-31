@@ -7,6 +7,6 @@
     "floww-local": "tsx ../../src/cli/index.ts --backend-url http://localhost:8000"
   },
   "devDependencies": {
-    "tsx": "^4.19.2"
+    "tsx": "^4.20.6"
   }
 }
