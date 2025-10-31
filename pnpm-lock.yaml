@@ -140,13 +140,10 @@ importers:
         version: 4.20.6
 
   examples/4_ai:
-    dependencies:
-      '@DeveloperFlows/floww-sdk':
-        specifier: workspace:*
-        version: link:../..
-      zod:
-        specifier: ^3.23.8
-        version: 3.25.76
+    devDependencies:
+      tsx:
+        specifier: ^4.19.2
+        version: 4.20.6
 
   examples/5_slack:
     devDependencies:

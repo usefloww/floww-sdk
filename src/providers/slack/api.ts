@@ -53,15 +53,16 @@ export class SlackApi {
 
   // Message operations
   async sendMessage(message: SlackMessage): Promise<any> {
+    const { channel, text, blocks, attachments, thread_ts, reply_broadcast, mrkdwn, ...rest } = message;
     const result = await this.client.chat.postMessage({
-      channel: message.channel,
-      text: message.text,
-      blocks: message.blocks,
-      attachments: message.attachments,
-      thread_ts: message.thread_ts,
-      reply_broadcast: message.reply_broadcast,
-      mrkdwn: message.mrkdwn ?? true,
-      ...message,
+      channel,
+      text,
+      blocks,
+      attachments,
+      thread_ts,
+      reply_broadcast,
+      mrkdwn: mrkdwn ?? true,
+      ...rest,
     } as any);
 
     if (!result.ok) {
@@ -76,13 +77,14 @@ export class SlackApi {
     ts: string,
     message: Partial<SlackMessage>
   ): Promise<any> {
+    const { text, blocks, attachments, ...rest } = message;
     const result = await this.client.chat.update({
       channel,
       ts,
-      text: message.text,
-      blocks: message.blocks,
-      attachments: message.attachments as any,
-      ...message,
+      text,
+      blocks,
+      attachments: attachments as any,
+      ...rest,
     });
 
     if (!result.ok) {

@@ -1,9 +1,12 @@
 {
-  "name": "floww-ai-example",
+  "name": "floww-sdk-example-1",
   "version": "1.0.0",
   "type": "module",
-  "dependencies": {
-    "@DeveloperFlows/floww-sdk": "workspace:*",
-    "zod": "^3.23.8"
+  "scripts": {
+    "floww": "tsx ../../src/cli/index.ts",
+    "floww-local": "tsx ../../src/cli/index.ts --backend-url http://localhost:8000"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2"
   }
 }
