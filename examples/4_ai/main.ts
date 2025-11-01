@@ -9,8 +9,8 @@
  * 2. Run: floww dev examples/4_ai/main.ts
  */
 
-import { getProvider } from "@DeveloperFlows/floww-sdk";
-import { generateText, stepCountIs } from "@DeveloperFlows/floww-sdk/ai";
+import { getProvider } from "floww";
+import { generateText, stepCountIs } from "floww/ai";
 import { z } from "zod";
 
 // Get providers

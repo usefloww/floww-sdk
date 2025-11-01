@@ -190,10 +190,10 @@ import { setConfig } from "../src/cli/config/configUtils";
 
 setConfig({
   workosClientId: "client_test",
-  backendUrl: "https://api.flow.toondn.app",
+  backendUrl: "https://api.usefloww.dev",
   workosApiUrl: "https://api.workos.com",
-  websocketUrl: "wss://ws.flow.toondn.app/connection/websocket",
-  registryUrl: "registry.flow.toondn.app",
+  websocketUrl: "wss://ws.usefloww.dev/connection/websocket",
+  registryUrl: "registry.usefloww.dev",
 });
 
 // Suppress console logs during tests (optional - uncomment if needed)

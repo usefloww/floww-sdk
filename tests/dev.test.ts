@@ -7,7 +7,7 @@ import path from "path";
 const files = [
   {
     name: "main.ts",
-    content: `import { Builtin } from "@developerflows/floww-sdk";
+    content: `import { Builtin } from "floww";
 
 export const builtin = new Builtin();
 
@@ -28,7 +28,7 @@ export default [
   "version": "1.0.0",
   "type": "module",
   "dependencies": {
-    "@developerflows/floww-sdk": "file:../../.."
+    "floww": "file:../../.."
   }
 }
 `,
@@ -95,7 +95,7 @@ describe("Dev Mode E2E Tests", () => {
     // Change file
     await commandSpace.putFile({
       name: "main.ts",
-      content: `import { Builtin } from "@developerflows/floww-sdk";
+      content: `import { Builtin } from "floww";
 
 export const builtin = new Builtin();
 
@@ -127,7 +127,7 @@ export default [
     const filesWithProvider = [
       {
         name: "main.ts",
-        content: `import { getProvider, Builtin } from "@developerflows/floww-sdk";
+        content: `import { getProvider, Builtin } from "floww";
 
 const github = getProvider("github");
 const builtin = new Builtin();

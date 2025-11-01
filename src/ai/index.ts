@@ -5,8 +5,8 @@
  *
  * @example
  * ```typescript
- * import { getProvider } from '@DeveloperFlows/floww-sdk';
- * import { generateText } from '@DeveloperFlows/floww-sdk/ai';
+ * import { getProvider } from 'floww';
+ * import { generateText } from 'floww/ai';
  * import { z } from 'zod';
  *
  * const openai = getProvider('openai', 'my-credential');

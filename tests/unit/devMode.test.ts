@@ -222,11 +222,15 @@ describe("Dev Mode Unit Tests", () => {
       expect(syncResult.webhooks.length).toBeGreaterThan(0);
 
       // 2. Create WebSocket connection
-      const centrifuge = new MockCentrifuge("wss://ws.flow.toondn.app/connection/websocket");
+      const centrifuge = new MockCentrifuge(
+        "wss://ws.usefloww.dev/connection/websocket"
+      );
       centrifuge.connect();
 
       // 3. Subscribe to workflow channel
-      const subscription = centrifuge.newSubscription(`workflow:test-workflow-123`);
+      const subscription = centrifuge.newSubscription(
+        `workflow:test-workflow-123`
+      );
       const onTriggerFired = vi.fn();
 
       subscription.on("publication", onTriggerFired);

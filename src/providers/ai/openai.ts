@@ -14,7 +14,7 @@ export type OpenAIConfig = AIProviderConfig & {
  *
  * @example
  * ```typescript
- * import { getProvider } from '@DeveloperFlows/floww-sdk';
+ * import { getProvider } from 'floww';
  *
  * const openai = getProvider('openai', 'my-openai-credential');
  * const model = openai.models.gpt4o;
@@ -60,15 +60,18 @@ export class OpenAI extends BaseAIProvider {
    */
   protected createModel(modelId: string): any {
     // Return a proxy that delays client creation until the model is actually used
-    return new Proxy({}, {
-      get: (target: any, prop: string) => {
-        // Lazily create the actual model on first property access
-        if (!target.__model) {
-          target.__model = this.getClient()(modelId);
-        }
-        return target.__model[prop];
+    return new Proxy(
+      {},
+      {
+        get: (target: any, prop: string) => {
+          // Lazily create the actual model on first property access
+          if (!target.__model) {
+            target.__model = this.getClient()(modelId);
+          }
+          return target.__model[prop];
+        },
       }
-    });
+    );
   }
 
   /**

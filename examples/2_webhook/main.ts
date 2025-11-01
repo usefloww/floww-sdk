@@ -1,4 +1,4 @@
-import { Builtin } from "@developerflows/floww-sdk";
+import { Builtin } from "floww";
 
 export const builtin = new Builtin();
 

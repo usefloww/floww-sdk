@@ -19,7 +19,7 @@ export class ModuleSystem {
   constructor(
     vfs: VirtualFileSystem,
     debugMode: boolean = false,
-    debugContext?: DebugContext,
+    debugContext?: DebugContext
   ) {
     this.vfs = vfs;
     this.debugMode = debugMode;
@@ -39,13 +39,13 @@ export class ModuleSystem {
           return req(specifier);
         } catch (e) {
           // Handle case-insensitive SDK package name and subpaths
-          if (specifier.toLowerCase().startsWith("@developerflows/floww-sdk")) {
+          if (specifier.toLowerCase().startsWith("floww")) {
             try {
               const req = createRequire(process.cwd() + "/package.json");
               // Replace the package name while preserving the subpath
               const correctedSpecifier = specifier.replace(
                 /^@developerflows\/floww-sdk/i,
-                "@DeveloperFlows/floww-sdk"
+                "floww"
               );
               return req(correctedSpecifier);
             } catch (e2) {
@@ -59,7 +59,7 @@ export class ModuleSystem {
       const resolved = this.vfs.resolveModule(specifier, fromFile);
       if (!resolved) {
         throw new Error(
-          `Cannot resolve module '${specifier}' from '${fromFile}'`,
+          `Cannot resolve module '${specifier}' from '${fromFile}'`
         );
       }
 
@@ -85,7 +85,9 @@ export class ModuleSystem {
         return parsed;
       } catch (error) {
         throw new Error(
-          `Invalid JSON in ${filePath}: ${error instanceof Error ? error.message : "Unknown error"}`,
+          `Invalid JSON in ${filePath}: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`
         );
       }
     }
@@ -97,13 +99,13 @@ export class ModuleSystem {
     if (this.debugMode && this.debugContext) {
       // Try to extract source map from inline comment
       const sourceMapMatch = transpiledCode.match(
-        /\/\/# sourceMappingURL=data:application\/json;base64,(.+)$/m,
+        /\/\/# sourceMappingURL=data:application\/json;base64,(.+)$/m
       );
       if (sourceMapMatch) {
         try {
           const sourceMapBase64 = sourceMapMatch[1];
           const sourceMapJson = Buffer.from(sourceMapBase64, "base64").toString(
-            "utf8",
+            "utf8"
           );
           const sourceMap = JSON.parse(sourceMapJson);
 
@@ -116,7 +118,7 @@ export class ModuleSystem {
         } catch (error) {
           console.warn(
             `❌ Failed to extract inline source map for ${filePath}:`,
-            error,
+            error
           );
         }
       }
@@ -134,7 +136,9 @@ export class ModuleSystem {
       // If common module doesn't exist, create a mock function
       getProvider = (type: string, alias?: string) => {
         console.warn(
-          `getProvider called with ${type}${alias ? ` (${alias})` : ""} but provider system not available`,
+          `getProvider called with ${type}${
+            alias ? ` (${alias})` : ""
+          } but provider system not available`
         );
         return {};
       };

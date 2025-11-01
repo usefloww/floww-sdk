@@ -5,7 +5,7 @@
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/DeveloperFlows/floww-sdk.git"
+    "url": "git+https://github.com/usefloww/floww-sdk.git"
   },
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -102,7 +102,7 @@
     "test": "tests"
   },
   "bugs": {
-    "url": "https://github.com/DeveloperFlows/floww-sdk/issues"
+    "url": "https://github.com/usefloww/floww-sdk/issues"
   },
-  "homepage": "https://github.com/DeveloperFlows/floww-sdk#readme"
+  "homepage": "https://github.com/usefloww/floww-sdk#readme"
 }

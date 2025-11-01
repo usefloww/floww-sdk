@@ -37,7 +37,7 @@ export interface UserCodeResult {
 export async function executeUserCode(
   entrypoint: string,
   providerConfigs: Map<string, ProviderConfig>,
-  debugContext?: DebugContext,
+  debugContext?: DebugContext
 ): Promise<UserCodeResult> {
   logger.debugInfo(`Executing user code: ${entrypoint}`);
 
@@ -60,7 +60,7 @@ export async function executeUserCode(
 
   if (!Array.isArray(triggers)) {
     throw new Error(
-      "No triggers were auto-registered. Make sure you're creating triggers using builtin.triggers.onCron() or similar methods.",
+      "No triggers were auto-registered. Make sure you're creating triggers using builtin.triggers.onCron() or similar methods."
     );
   }
 
@@ -88,7 +88,7 @@ export async function executeUserCode(
  */
 function injectProviderConfigs(
   project: ExecuteUserProjectOptions,
-  providerConfigs: Map<string, ProviderConfig>,
+  providerConfigs: Map<string, ProviderConfig>
 ): ExecuteUserProjectOptions {
   // Serialize provider configs for injection
   const configsObj = Object.fromEntries(providerConfigs);
@@ -101,7 +101,7 @@ function injectProviderConfigs(
   // Create wrapper code
   const wrapperCode = `
     // Import auto-registration functions first
-    const { getUsedProviders, getRegisteredTriggers, clearRegisteredTriggers, clearUsedProviders, setProviderConfigs } = require('@developerflows/floww-sdk');
+    const { getUsedProviders, getRegisteredTriggers, clearRegisteredTriggers, clearUsedProviders, setProviderConfigs } = require('floww');
 
     // Clear previously registered data to prevent duplication on reload
     clearRegisteredTriggers();

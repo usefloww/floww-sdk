@@ -63,7 +63,10 @@ export const mockGitlabProvider: Provider = {
   },
 };
 
-export const mockProviders: Provider[] = [mockSlackProvider, mockGitlabProvider];
+export const mockProviders: Provider[] = [
+  mockSlackProvider,
+  mockGitlabProvider,
+];
 
 // Mock Provider Types (schemas)
 export const mockSlackProviderType: ProviderType = {
@@ -121,7 +124,7 @@ export const mockDevTriggerSyncResponse: DevTriggerSyncResponse = {
   webhooks: [
     {
       id: "webhook-123",
-      url: "https://api.flow.toondn.app/webhooks/test-webhook-123",
+      url: "https://api.usefloww.dev/webhooks/test-webhook-123",
       path: "/webhook",
       method: "POST",
     },
@@ -151,7 +154,7 @@ export const mockPushTokenResponse: PushTokenResponse = {
   password: "mock-registry-token",
   expires_in: 3600,
   image_tag: "sha256:abcdef123456",
-  registry_url: "registry.flow.toondn.app",
+  registry_url: "registry.usefloww.dev",
 };
 
 // Mock Workflow Deployment Response
@@ -174,7 +177,7 @@ export const mockWorkflowDeploymentResponse: WorkflowDeploymentResponse = {
   webhooks: [
     {
       id: "webhook-456",
-      url: "https://api.flow.toondn.app/webhooks/prod-webhook-456",
+      url: "https://api.usefloww.dev/webhooks/prod-webhook-456",
       path: "/api/webhook",
       method: "POST",
     },
@@ -202,14 +205,20 @@ export const mockWorkOSDeviceAuthResponse = {
 };
 
 // Helper to create custom mock data
-export function createMockNamespace(overrides: Partial<Namespace> = {}): Namespace {
+export function createMockNamespace(
+  overrides: Partial<Namespace> = {}
+): Namespace {
   return { ...mockNamespace, ...overrides };
 }
 
-export function createMockWorkflow(overrides: Partial<Workflow> = {}): Workflow {
+export function createMockWorkflow(
+  overrides: Partial<Workflow> = {}
+): Workflow {
   return { ...mockWorkflow, ...overrides };
 }
 
-export function createMockProvider(overrides: Partial<Provider> = {}): Provider {
+export function createMockProvider(
+  overrides: Partial<Provider> = {}
+): Provider {
   return { ...mockSlackProvider, ...overrides };
 }

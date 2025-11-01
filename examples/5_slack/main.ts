@@ -1,5 +1,5 @@
-import { getProvider } from "@developerflows/floww-sdk";
-import { generateText, stepCountIs } from "@DeveloperFlows/floww-sdk/ai";
+import { getProvider } from "floww";
+import { generateText, stepCountIs } from "floww/ai";
 import { z } from "zod";
 
 const slack = getProvider("slack");
@@ -35,21 +35,21 @@ Repeat long thread histories — summarize them.
 
 Goal:
 Every new question should get an immediate, accurate, and context-aware answer based on past Slack knowledge.
-`
+`;
 
 async function searchChannelHistory(
   channelId: string,
   searchPattern: string,
   resultLimit: number = 10
 ) {
-  console.log(`Searching ask-engineering for ${searchPattern}`)
+  console.log(`Searching ask-engineering for ${searchPattern}`);
   const result = await slack.actions.conversationHistory({
     channelId,
     limit: 200,
   });
   const messages = result.messages || [];
 
-  const regex = new RegExp(searchPattern, 'i');
+  const regex = new RegExp(searchPattern, "i");
   const filteredMessages = messages.filter((msg: any) => {
     return msg.text && regex.test(msg.text);
   });
@@ -69,9 +69,14 @@ async function answerQuestion(question: string) {
     prompt: `Question: ${question}`,
     tools: {
       searchChannelHistory: {
-        description: "Search the channel's message history using a regex pattern. Fetches the most recent 200 messages and returns the 10 most recent matches.",
+        description:
+          "Search the channel's message history using a regex pattern. Fetches the most recent 200 messages and returns the 10 most recent matches.",
         inputSchema: z.object({
-          searchPattern: z.string().describe("Regex pattern to search for in message content (case-insensitive)")
+          searchPattern: z
+            .string()
+            .describe(
+              "Regex pattern to search for in message content (case-insensitive)"
+            ),
         }),
         execute: async ({ searchPattern }) => {
           return await searchChannelHistory("C092U7SA7RA", searchPattern);
@@ -89,7 +94,9 @@ slack.triggers.onMessage({
   handler: async (ctx, event) => {
     const message = event.body.event;
 
-    console.log(`Received message from ${message.user} in channel ${message.channel}`);
+    console.log(
+      `Received message from ${message.user} in channel ${message.channel}`
+    );
     console.log(`Message text: ${message.text}`);
 
     const response = await answerQuestion(message.text);

@@ -12,7 +12,7 @@ export type GoogleConfig = AIProviderConfig & {
  *
  * @example
  * ```typescript
- * import { getProvider } from '@DeveloperFlows/floww-sdk';
+ * import { getProvider } from 'floww';
  *
  * const google = getProvider('google', 'my-google-credential');
  * const model = google.models.gemini15Pro;
@@ -56,15 +56,18 @@ export class GoogleAI extends BaseAIProvider {
    */
   protected createModel(modelId: string): any {
     // Return a proxy that delays client creation until the model is actually used
-    return new Proxy({}, {
-      get: (target: any, prop: string) => {
-        // Lazily create the actual model on first property access
-        if (!target.__model) {
-          target.__model = this.getClient()(modelId);
-        }
-        return target.__model[prop];
+    return new Proxy(
+      {},
+      {
+        get: (target: any, prop: string) => {
+          // Lazily create the actual model on first property access
+          if (!target.__model) {
+            target.__model = this.getClient()(modelId);
+          }
+          return target.__model[prop];
+        },
       }
-    });
+    );
   }
 
   /**

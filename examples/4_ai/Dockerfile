@@ -1,13 +1,13 @@
 FROM base-floww
 
 # Build context is SDK root, copy pre-built SDK tarball
-COPY DeveloperFlows-floww-sdk-*.tgz /tmp/
+COPY floww-*.tgz /tmp/
 
 # Setup /var/task with SDK
 WORKDIR /var/task
 # Create a minimal package.json for npm to work correctly
-RUN echo '{"type":"module","dependencies":{"@DeveloperFlows/floww-sdk":"*"}}' > package.json && \
-    npm install /tmp/DeveloperFlows-floww-sdk-*.tgz && \
+RUN echo '{"type":"module","dependencies":{"floww":"*"}}' > package.json && \
+    npm install /tmp/floww-*.tgz && \
     rm -rf /tmp/*.tgz
 
 # Set entrypoint from config

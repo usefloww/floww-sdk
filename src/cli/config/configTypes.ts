@@ -32,12 +32,12 @@ export const CONFIG_SCHEMA = {
     cliKey: "workos-client-id",
   },
   backendUrl: {
-    default: "https://api.flow.toondn.app",
+    default: "https://api.usefloww.dev",
     envVar: "FLOWW_BACKEND_URL",
     cliKey: "backend-url",
   },
   websocketUrl: {
-    default: "wss://ws.flow.toondn.app/connection/websocket",
+    default: "wss://ws.usefloww.dev/connection/websocket",
     envVar: "FLOWW_WEBSOCKET_URL",
     cliKey: "websocket-url",
   },
@@ -47,7 +47,7 @@ export const CONFIG_SCHEMA = {
     cliKey: "workos-api-url",
   },
   registryUrl: {
-    default: "registry.flow.toondn.app",
+    default: "registry.usefloww.dev",
     envVar: "FLOWW_REGISTRY_URL",
     cliKey: "registry-url",
   },

@@ -25,7 +25,7 @@ import {
 } from "./fixtures";
 
 // Backend API base URL (from configTypes.ts default)
-const BACKEND_URL = "https://api.flow.toondn.app";
+const BACKEND_URL = "https://api.usefloww.dev";
 const WORKOS_URL = "https://api.workos.com";
 
 /**
@@ -98,19 +98,22 @@ export const handlers = [
     return HttpResponse.json(newProvider, { status: 201 });
   }),
 
-  http.patch(`${BACKEND_URL}/api/providers/:id`, async ({ params, request }) => {
-    const { id } = params;
-    const body = (await request.json()) as any;
-    const existingProvider = mockProviders.find((p) => p.id === id);
+  http.patch(
+    `${BACKEND_URL}/api/providers/:id`,
+    async ({ params, request }) => {
+      const { id } = params;
+      const body = (await request.json()) as any;
+      const existingProvider = mockProviders.find((p) => p.id === id);
 
-    const updatedProvider = createMockProvider({
-      ...existingProvider,
-      ...body,
-      id: id as string,
-    });
+      const updatedProvider = createMockProvider({
+        ...existingProvider,
+        ...body,
+        id: id as string,
+      });
 
-    return HttpResponse.json(updatedProvider);
-  }),
+      return HttpResponse.json(updatedProvider);
+    }
+  ),
 
   http.delete(`${BACKEND_URL}/api/providers/:id`, () => {
     return HttpResponse.json({}, { status: 204 });
@@ -154,7 +157,7 @@ export const handlers = [
       return HttpResponse.json(
         {
           error: "Runtime already exists",
-          detail: { runtime_id: "runtime-existing-123" }
+          detail: { runtime_id: "runtime-existing-123" },
         },
         { status: 409 }
       );
@@ -206,7 +209,7 @@ export const handlers = [
   }),
 
   http.post(`${WORKOS_URL}/user_management/token`, async ({ request }) => {
-    const body = (await request.text());
+    const body = await request.text();
 
     // Parse form data
     const params = new URLSearchParams(body);
@@ -255,7 +258,10 @@ export const errorHandlers = {
   }),
 
   serverError: http.get(`${BACKEND_URL}/api/*`, () => {
-    return HttpResponse.json({ error: "Internal server error" }, { status: 500 });
+    return HttpResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }),
 
   networkError: http.get(`${BACKEND_URL}/api/*`, () => {

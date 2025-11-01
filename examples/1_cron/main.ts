@@ -1,4 +1,4 @@
-import { getProvider } from "@developerflows/floww-sdk";
+import { getProvider } from "floww";
 
 const builtin = getProvider("builtin");
 
