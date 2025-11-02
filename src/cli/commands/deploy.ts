@@ -29,7 +29,7 @@ import { logger, ICONS } from "../utils/logger";
 import { selectOrCreateWorkflow } from "../utils/promptUtils";
 import { resolveWorkflow, fetchProviderConfigs } from "../runtime/workflow";
 import { executeUserCode } from "../runtime/userCode";
-import { checkProviders } from "../runtime/providers";
+import { validateProviders } from "../runtime/providers";
 
 const defaultDockerfileContent = `
 FROM base-floww
@@ -280,32 +280,11 @@ export async function deployCommand() {
 
   // Validate all providers are configured
   if (executionResult.usedProviders.length > 0) {
-    const providerValidation = await logger.debugTask(
-      "Validating providers",
-      async () => {
-        const availability = await checkProviders(
-          executionResult.usedProviders
-        );
-
-        if (availability.unavailable.length === 0) {
-          return { valid: true, unavailable: [] };
-        }
-
-        const unavailableTypes = [
-          ...new Set(availability.unavailable.map((p) => p.type)),
-        ];
-        return { valid: false, unavailable: unavailableTypes };
-      }
-    );
-
-    if (!providerValidation.valid) {
-      logger.error(
-        "Missing providers detected:",
-        providerValidation.unavailable
-      );
-      logger.tip('Run "floww dev" to set up missing providers interactively');
-      process.exit(1);
-    }
+    await logger.debugTask("Validating providers", async () => {
+      await validateProviders(executionResult.usedProviders, {
+        interactive: logger.interactive,
+      });
+    });
   }
 
   // ============================================================================
