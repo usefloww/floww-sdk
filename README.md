@@ -1,48 +1,111 @@
 # Floww SDK
 
-Build event-driven workflows with TypeScript. Trigger code execution from webhooks, cron schedules, and external services.
+**The code-first framework for building production-ready workflow automations.**
 
-## Quick Start
-
-```bash
-npm install floww
-```
-
-Create a workflow file `main.ts`:
+Replace complex orchestration tools with simple TypeScript code. Build workflows that respond to webhooks, run on schedules, integrate with AI, and connect to external services - all with full type safety.
 
 ```typescript
-import { getProvider } from "floww";
+const github = getProvider("github");
+const slack = getProvider("slack");
 
-const builtin = getProvider("builtin");
-
-builtin.triggers.onCron({
-  expression: "*/1 * * * * *",  // Every second
-  handler: (ctx, event) => {
-    console.log("Triggered at", event.scheduledTime);
-  },
+github.triggers.onPush({
+  handler: async (ctx, event) => {
+    await slack.postMessage({
+      channel: '#deployments',
+      text: `🚀 New push to ${event.repository.name}`
+    });
+  }
 });
 ```
 
-Run your workflow:
+**Start building in 30 seconds →**
+
+## Prerequisites
+
+- Node.js 18+ 
+- TypeScript 5.0 or higher
+- npm, pnpm, or yarn
+
+
+## Quick Start
+
+1. Create new projecan 
 
 ```bash
-npx floww dev
+npx floww init
+```
+
+2. Install dependencies
+
+```bash
+npm install
+```
+
+3. Start developing
+
+```bash
+floww dev
+```
+
+4. Deploy to production
+
+```bash
+floww deploy
 ```
 
 ## Features
 
 - **Webhook Triggers** - Handle HTTP requests with custom paths and validation
 - **Cron Scheduling** - Run tasks on schedules using cron expressions
+- **AI Integration** - Built-in support for OpenAI, Anthropic, Google AI with tool calling
 - **TypeScript Native** - Full TypeScript support with type checking
 - **Auto-reload** - Hot reload in development mode
-- **Provider System** - Built-in integrations for GitLab, Google Calendar, and more
+- **Provider System** - Built-in integrations for GitLab, Google Calendar, Slack, and more
+
+## Real-World Examples
+
+### Daily Reports
+```typescript
+const builtin = getProvider("builtin");
+
+builtin.triggers.onCron({
+  expression: "0 9 * * 1-5",  // Weekdays at 9 AM
+  handler: async (ctx) => {
+    const analytics = await fetchAnalytics();
+    await sendEmailReport(analytics);
+  }
+});
+```
+
+### AI-Powered Customer Support
+```typescript
+import { getProvider } from "floww";
+import { generateText } from "floww/ai";
+
+const openai = getProvider("openai", "default");
+const builtin = getProvider("builtin");
+
+builtin.triggers.onWebhook({
+  path: '/support',
+  handler: async (ctx, event) => {
+    const response = await generateText({
+      model: openai.models.gpt4,
+      prompt: `Customer question: ${event.body.question}`
+    });
+
+    return { answer: response.text };
+  }
+});
+```
+
+[Browse all examples →](./examples)
 
 ## Basic Usage
 
 ### Webhook Trigger
 
 ```typescript
-import { getProvider } from "floww-sdk";
+import { getProvider } from "floww";
 
 const builtin = getProvider("builtin");
 
@@ -78,7 +141,7 @@ builtin.triggers.onCron({
 Export an array of triggers from your workflow file:
 
 ```typescript
-import { getProvider } from "floww-sdk";
+import { getProvider } from "floww";
 
 const builtin = getProvider("builtin");
 
@@ -99,33 +162,85 @@ export default [
 ];
 ```
 
-## CLI Commands
+## AI & LLMs
 
-### Development Mode
+Floww has first-class AI support with the Vercel AI SDK integration.
 
-```bash
-floww dev [file]        # Run with auto-reload (default: main.ts)
-floww dev --port 8080   # Custom port
+```typescript
+import { getProvider } from "floww";
+import { generateText } from "floww/ai";
+import { z } from "zod";
+
+const openai = getProvider("openai", "default");
+const builtin = getProvider("builtin");
+
+builtin.triggers.onWebhook({
+  path: '/chat',
+  handler: async (ctx, event) => {
+    const result = await generateText({
+      model: openai.models.gpt4oMini,
+      prompt: event.body.message,
+      tools: {
+        getWeather: {
+          description: "Get current weather",
+          inputSchema: z.object({ city: z.string() }),
+          execute: async ({ city }) => {
+            // Your weather API call
+            return { temp: 72, condition: 'sunny' };
+          }
+        }
+      }
+    });
+
+    return { response: result.text };
+  }
+});
 ```
 
-### Production Mode
+[See full AI example →](./examples/4_ai/main.ts)
 
-```bash
-floww start [file]      # Run in production
+## Provider Configuration
+
+### Automatic Provider Detection
+
+Floww automatically detects which providers you're using in your code. When you run `floww dev` or `floww deploy`, you will be prompted to create those that don't exist yet
+
+
+### Using Multiple Provider Instances
+
+You can have multiple instances of the same provider in your namespace by using different aliases:
+
+```typescript
+// Personal GitLab account
+const gitlabPersonal = getProvider("gitlab", "personal");
+
+// Work GitLab account
+const gitlabWork = getProvider("gitlab", "work");
+
+// Different OpenAI projects
+const openaiDev = getProvider("openai", "development");
+const openaiProd = getProvider("openai", "production");
 ```
 
-### Deploy
+Each alias is configured separately with its own credentials.
 
-```bash
-floww deploy            # Deploy to Floww cloud
-```
+
+### Available Providers
+- `builtin` - Webhooks and cron (no auth required)
+- `gitlab` - GitLab events and API
+- `google_calendar` - Google Calendar events
+- `openai` - AI models (GPT-4, GPT-3.5, etc.)
+- `anthropic` - Claude models
+- `slack` - Slack events and messaging
+
+[See all providers →](https://usefloww.dev/docs/providers)
 
 ## Providers
 
 ### GitLab
 
 ```typescript
-import { getProvider } from "floww-sdk";
+import { getProvider } from "floww";
 
 const gitlab = getProvider("gitlab", {
   token: process.env.GITLAB_TOKEN
@@ -141,7 +256,7 @@ gitlab.triggers.onPushEvent({
 ### Google Calendar
 
 ```typescript
-import { getProvider } from "floww-sdk";
+import { getProvider } from "floww";
 
 const calendar = getProvider("google_calendar", {
   email: "user@example.com"
@@ -153,6 +268,76 @@ calendar.triggers.onEventStart({
   }
 });
 ```
+
+## CLI Commands
+
+### Development Mode
+
+```bash
+floww dev [file]        # Run with auto-reload (default: main.ts)
+floww dev --port 8080   # Custom port
+```
+
+**How it works:**
+
+When you run `floww dev`, the CLI:
+1. **Registers your triggers** on the Floww server (webhooks, cron schedules, etc.)
+2. **Routes events to your local machine** for execution
+3. **Watches for file changes** and hot-reloads your code
+
+This means:
+- Your webhooks get real URLs immediately (e.g., `https://app.usefloww.dev/webhook/abc123`)
+- Events are executed in your local environment with live code changes
+- You can test with real external services (GitLab webhooks, cron schedules, etc.)
+- All logging happens in your terminal in real-time
+
+**Example workflow:**
+```bash
+# Start dev server
+floww dev
+
+# Your webhook is registered and you get a URL:
+# ✓ Webhook registered: https://app.usefloww.dev/webhook/w_abc123/custom
+
+# Send a request to that URL from anywhere:
+curl -X POST https://app.usefloww.dev/webhook/w_abc123/custom \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Hello"}'
+
+# Event is routed to your local machine and executed
+# You see the logs in your terminal immediately
+```
+
+**Local-only testing:**
+
+For testing without deploying triggers, you can also use localhost:
+```bash
+curl -X POST http://localhost:3000/webhooks/custom \
+  -H "Content-Type: application/json" \
+  -d '{"test": true}'
+```
+
+## Deployment
+
+### First Time Setup
+
+1. Create a Floww account at [app.usefloww.dev](https://app.usefloww.dev)
+
+2. Login from CLI:
+```bash
+floww login
+```
+
+3. Deploy your workflow:
+```bash
+floww deploy
+```
+
+This will:
+- Bundle your TypeScript code
+- Upload to Floww cloud
+- Provision infrastructure
+- Return a webhook URL
 
 ## Documentation
 
