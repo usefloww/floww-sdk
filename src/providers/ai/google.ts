@@ -12,16 +12,15 @@ export type GoogleConfig = AIProviderConfig & {
  *
  * @example
  * ```typescript
- * import { getProvider } from 'floww';
+ * import { GoogleAI } from 'floww';
  *
- * const google = getProvider('google', 'my-google-credential');
+ * const google = new GoogleAI(); // Uses 'default' credential
+ * const google2 = new GoogleAI('my-google-credential'); // Uses custom credential
  * const model = google.models.gemini15Pro;
  * const model2 = google.models['gemini-1.5-pro'];
  * ```
  */
 export class GoogleAI extends BaseAIProvider {
-  providerType = "google";
-
   secretDefinitions = [
     {
       key: "apiKey",
@@ -34,7 +33,7 @@ export class GoogleAI extends BaseAIProvider {
   private googleClient?: ReturnType<typeof createGoogleGenerativeAI>;
 
   constructor(config?: GoogleConfig | string) {
-    super(config);
+    super("google", config);
   }
 
   /**

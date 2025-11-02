@@ -231,9 +231,9 @@ async function scaffoldProject(projectDir: string, projectName: string) {
  * Create a simple cron workflow example (based on examples/1_cron)
  */
 function createScaffoldedWorkflow(filePath: string) {
-  const template = `import { getProvider } from "floww";
+  const template = `import { Builtin } from "floww";
 
-const builtin = getProvider("builtin");
+const builtin = new Builtin();
 
 builtin.triggers.onCron({
   expression: "*/1 * * * * *", // Every second

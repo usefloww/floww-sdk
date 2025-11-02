@@ -1,6 +1,6 @@
-import { getProvider } from "floww";
+import { Gitlab } from "floww";
 
-const gitlab = getProvider("gitlab", "asdfasdf");
+const gitlab = new Gitlab("asdfasdf");
 
 gitlab.triggers.onMergeRequest({
   projectId: "19677180",

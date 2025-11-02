@@ -5,8 +5,10 @@
 Replace complex orchestration tools with simple TypeScript code. Build workflows that respond to webhooks, run on schedules, integrate with AI, and connect to external services - all with full type safety.
 
 ```typescript
-const github = getProvider("github");
-const slack = getProvider("slack");
+import { Github, Slack } from "floww";
+
+const github = new Github();
+const slack = new Slack();
 
 github.triggers.onPush({
   handler: async (ctx, event) => {
@@ -66,7 +68,9 @@ floww deploy
 
 ### Daily Reports
 ```typescript
-const builtin = getProvider("builtin");
+import { Builtin } from "floww";
+
+const builtin = new Builtin();
 
 builtin.triggers.onCron({
   expression: "0 9 * * 1-5",  // Weekdays at 9 AM
@@ -79,11 +83,11 @@ builtin.triggers.onCron({
 
 ### AI-Powered Customer Support
 ```typescript
-import { getProvider } from "floww";
+import { OpenAI, Builtin } from "floww";
 import { generateText } from "floww/ai";
 
-const openai = getProvider("openai", "default");
-const builtin = getProvider("builtin");
+const openai = new OpenAI();
+const builtin = new Builtin();
 
 builtin.triggers.onWebhook({
   path: '/support',
@@ -105,9 +109,9 @@ builtin.triggers.onWebhook({
 ### Webhook Trigger
 
 ```typescript
-import { getProvider } from "floww";
+import { Builtin } from "floww";
 
-const builtin = getProvider("builtin");
+const builtin = new Builtin();
 
 builtin.triggers.onWebhook({
   path: '/custom',
@@ -141,9 +145,9 @@ builtin.triggers.onCron({
 Export an array of triggers from your workflow file:
 
 ```typescript
-import { getProvider } from "floww";
+import { Builtin } from "floww";
 
-const builtin = getProvider("builtin");
+const builtin = new Builtin();
 
 export default [
   builtin.triggers.onWebhook({
@@ -167,12 +171,12 @@ export default [
 Floww has first-class AI support with the Vercel AI SDK integration.
 
 ```typescript
-import { getProvider } from "floww";
+import { OpenAI, Builtin } from "floww";
 import { generateText } from "floww/ai";
 import { z } from "zod";
 
-const openai = getProvider("openai", "default");
-const builtin = getProvider("builtin");
+const openai = new OpenAI();
+const builtin = new Builtin();
 
 builtin.triggers.onWebhook({
   path: '/chat',
@@ -211,15 +215,17 @@ Floww automatically detects which providers you're using in your code. When you 
 You can have multiple instances of the same provider in your namespace by using different aliases:
 
 ```typescript
+import { Gitlab, OpenAI } from "floww";
+
 // Personal GitLab account
-const gitlabPersonal = getProvider("gitlab", "personal");
+const gitlabPersonal = new Gitlab("personal");
 
 // Work GitLab account
-const gitlabWork = getProvider("gitlab", "work");
+const gitlabWork = new Gitlab("work");
 
 // Different OpenAI projects
-const openaiDev = getProvider("openai", "development");
-const openaiProd = getProvider("openai", "production");
+const openaiDev = new OpenAI("development");
+const openaiProd = new OpenAI("production");
 ```
 
 Each alias is configured separately with its own credentials.
@@ -240,9 +246,9 @@ Each alias is configured separately with its own credentials.
 ### GitLab
 
 ```typescript
-import { getProvider } from "floww";
+import { Gitlab } from "floww";
 
-const gitlab = getProvider("gitlab", {
+const gitlab = new Gitlab({
   token: process.env.GITLAB_TOKEN
 });
 
@@ -256,9 +262,9 @@ gitlab.triggers.onPushEvent({
 ### Google Calendar
 
 ```typescript
-import { getProvider } from "floww";
+import { GoogleCalendar } from "floww";
 
-const calendar = getProvider("google_calendar", {
+const calendar = new GoogleCalendar({
   email: "user@example.com"
 });
 

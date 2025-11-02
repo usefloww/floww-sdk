@@ -8,10 +8,8 @@ import { BaseProvider } from "./base";
 import { registerTrigger } from "../userCode/providers";
 
 export class Builtin extends BaseProvider {
-  providerType = "builtin";
-
   constructor(config?: any) {
-    super(config); // No credential name needed for builtin
+    super("builtin", config);
   }
 
   actions = {};

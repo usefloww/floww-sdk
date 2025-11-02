@@ -9,8 +9,6 @@ export type AIProviderConfig = BaseProviderConfig & {
  * and adds dynamic model access via a Proxy
  */
 export abstract class BaseAIProvider extends BaseProvider {
-  abstract providerType: string;
-
   /**
    * Abstract method that creates a language model instance.
    * Each provider implements this to return their specific model.
@@ -23,8 +21,8 @@ export abstract class BaseAIProvider extends BaseProvider {
    */
   public readonly models: Record<string, any>;
 
-  constructor(config?: AIProviderConfig | string) {
-    super(config);
+  constructor(providerType: string, config?: AIProviderConfig | string) {
+    super(providerType, config);
 
     // Create a proxy that dynamically creates models on access
     this.models = new Proxy({} as Record<string, any>, {

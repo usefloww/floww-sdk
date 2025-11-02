@@ -1,10 +1,10 @@
-import { getProvider } from "floww";
+import { Slack, OpenAI } from "floww";
 import { generateText, stepCountIs } from "floww/ai";
 import { z } from "zod";
 
-const slack = getProvider("slack");
+const slack = new Slack();
 
-const openai = getProvider("openai", "default");
+const openai = new OpenAI();
 
 const systemPrompt = `
 You are AskEngBot, the assistant for TechWolf's #ask-engineering Slack channel.

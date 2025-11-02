@@ -12,16 +12,15 @@ export type AnthropicConfig = AIProviderConfig & {
  *
  * @example
  * ```typescript
- * import { getProvider } from 'floww';
+ * import { Anthropic } from 'floww';
  *
- * const anthropic = getProvider('anthropic', 'my-anthropic-credential');
+ * const anthropic = new Anthropic(); // Uses 'default' credential
+ * const anthropic2 = new Anthropic('my-anthropic-credential'); // Uses custom credential
  * const model = anthropic.models.claude35Sonnet;
  * const model2 = anthropic.models['claude-3-5-sonnet-20241022'];
  * ```
  */
 export class Anthropic extends BaseAIProvider {
-  providerType = "anthropic";
-
   secretDefinitions = [
     {
       key: "apiKey",
@@ -34,7 +33,7 @@ export class Anthropic extends BaseAIProvider {
   private anthropicClient?: ReturnType<typeof createAnthropic>;
 
   constructor(config?: AnthropicConfig | string) {
-    super(config);
+    super("anthropic", config);
   }
 
   /**

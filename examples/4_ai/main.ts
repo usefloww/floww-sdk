@@ -9,13 +9,13 @@
  * 2. Run: floww dev examples/4_ai/main.ts
  */
 
-import { getProvider } from "floww";
+import { OpenAI, Builtin } from "floww";
 import { generateText, stepCountIs } from "floww/ai";
 import { z } from "zod";
 
 // Get providers
-const openai = getProvider("openai", "default");
-const builtin = getProvider("builtin");
+const openai = new OpenAI();
+const builtin = new Builtin();
 
 // Run every 5 seconds
 export const weatherCheck = builtin.triggers.onCron({

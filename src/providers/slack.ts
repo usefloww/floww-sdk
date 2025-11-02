@@ -164,12 +164,11 @@ class SlackActions {
 }
 
 export class Slack extends BaseProvider {
-  providerType = "slack";
   private api?: SlackApi;
   actions: SlackActions;
 
-  constructor(config?: SlackConfig) {
-    super(config);
+  constructor(config?: SlackConfig | string) {
+    super("slack", config);
     this.actions = new SlackActions(() => this.getApi());
   }
 

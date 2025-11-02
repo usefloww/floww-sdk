@@ -1,6 +1,6 @@
-import { getProvider } from "floww";
+import { Builtin } from "floww";
 
-const builtin = getProvider("builtin");
+const builtin = new Builtin();
 
 builtin.triggers.onCron({
   expression: "*/1 * * * * *",

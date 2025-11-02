@@ -1,4 +1,5 @@
 import { Provider, SecretDefinition, Trigger, Action } from "../common";
+import { getProviderConfig, trackProviderUsage } from "../userCode/providers";
 
 export type BaseProviderConfig = {
   credential?: string;
@@ -6,7 +7,7 @@ export type BaseProviderConfig = {
 };
 
 export abstract class BaseProvider implements Provider {
-  abstract providerType: string;
+  providerType: string;
   credentialName: string;
   secretDefinitions?: SecretDefinition[];
   abstract triggers: Record<string, (...args: any[]) => Trigger>;
@@ -15,7 +16,9 @@ export abstract class BaseProvider implements Provider {
   protected config: Record<string, any> = {};
   private secrets: Record<string, string> = {};
 
-  constructor(config?: BaseProviderConfig | string) {
+  constructor(providerType: string, config?: BaseProviderConfig | string) {
+    this.providerType = providerType;
+
     // Support both old string pattern and new object pattern
     if (typeof config === "string") {
       this.credentialName = config;
@@ -25,6 +28,25 @@ export abstract class BaseProvider implements Provider {
       this.config = rest;
     } else {
       this.credentialName = "default";
+    }
+
+    // Initialize immediately - providerType is now available
+    this.initialize();
+  }
+
+  /**
+   * Initialize provider - tracks usage and merges backend config.
+   * Called automatically by constructor.
+   */
+  private initialize(): void {
+    // Track provider usage for deployment validation
+    trackProviderUsage(this.providerType, this.credentialName);
+
+    // Auto-fetch and merge backend configuration
+    const backendConfig = getProviderConfig(this.providerType, this.credentialName);
+    if (backendConfig) {
+      // Backend config should not override explicit config passed to constructor
+      this.config = { ...backendConfig, ...this.config };
     }
   }
 

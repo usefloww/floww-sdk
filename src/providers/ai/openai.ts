@@ -14,16 +14,15 @@ export type OpenAIConfig = AIProviderConfig & {
  *
  * @example
  * ```typescript
- * import { getProvider } from 'floww';
+ * import { OpenAI } from 'floww';
  *
- * const openai = getProvider('openai', 'my-openai-credential');
+ * const openai = new OpenAI(); // Uses 'default' credential
+ * const openai2 = new OpenAI('my-openai-credential'); // Uses custom credential
  * const model = openai.models.gpt4o;
  * const model2 = openai.models['gpt-4o'];
  * ```
  */
 export class OpenAI extends BaseAIProvider {
-  providerType = "openai";
-
   secretDefinitions = [
     {
       key: "apiKey",
@@ -36,7 +35,7 @@ export class OpenAI extends BaseAIProvider {
   private openaiClient?: ReturnType<typeof createOpenAI>;
 
   constructor(config?: OpenAIConfig | string) {
-    super(config);
+    super("openai", config);
   }
 
   /**

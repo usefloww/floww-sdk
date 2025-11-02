@@ -133,10 +133,8 @@ export type GitLabMergeRequestTriggerArgs = {
 };
 
 export class Gitlab extends BaseProvider {
-  providerType = "gitlab";
-
-  constructor(config: any) {
-    super(config);
+  constructor(config?: GitlabConfig | string) {
+    super("gitlab", config);
   }
 
   actions = {};
