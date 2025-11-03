@@ -263,12 +263,17 @@ export async function deployCommand() {
 
   const entrypoint = projectConfig.entrypoint || "main.ts";
 
+  // Resolve workflow first so we can use namespaceId later
+  const workflowConfig = await logger.debugTask(
+    "Resolving workflow",
+    async () => await resolveWorkflow(projectConfig)
+  );
+
   // Execute user code once to get both triggers and providers
   const executionResult = await logger.debugTask(
     "Executing user code",
     async () => {
-      // Resolve workflow and fetch provider configs
-      const workflowConfig = await resolveWorkflow(projectConfig);
+      // Fetch provider configs
       const providerConfigs = await fetchProviderConfigs(
         workflowConfig.namespaceId
       );
@@ -283,6 +288,7 @@ export async function deployCommand() {
     await logger.debugTask("Validating providers", async () => {
       await validateProviders(executionResult.usedProviders, {
         interactive: logger.interactive,
+        namespaceId: workflowConfig.namespaceId,
       });
     });
   }

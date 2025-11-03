@@ -69,6 +69,10 @@ export interface WebhookInfo {
   url: string;
   path?: string;
   method?: string;
+  trigger_id?: string;
+  trigger_type?: string;
+  provider_type?: string;
+  provider_alias?: string;
 }
 
 export interface WorkflowDeploymentCreateRequest {
@@ -430,12 +434,7 @@ export interface DevTriggerSyncRequest {
 }
 
 export interface DevTriggerSyncResponse {
-  webhooks: Array<{
-    id: string;
-    url: string;
-    path?: string;
-    method?: string;
-  }>;
+  webhooks: WebhookInfo[];
 }
 
 export async function syncDevTriggers(

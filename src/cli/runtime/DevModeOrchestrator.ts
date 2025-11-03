@@ -98,7 +98,10 @@ export class DevModeOrchestrator {
     );
 
     // Step 4: Validate providers
-    await validateProviders(result.usedProviders, { interactive: true });
+    await validateProviders(result.usedProviders, {
+      interactive: true,
+      namespaceId: this.workflow.namespaceId,
+    });
 
     // Step 4.5: Sync triggers with backend (deploy webhooks to production)
     await logger.debugTask("Syncing triggers with backend", async () => {
@@ -165,6 +168,28 @@ export class DevModeOrchestrator {
     });
 
     logger.debugInfo(`Synced ${response.webhooks.length} webhook(s) with backend`);
+
+    if (response.webhooks.length > 0) {
+      console.log();
+      console.log("🛰️ Remote webhook endpoints (backend):");
+      for (const webhook of response.webhooks) {
+        const methodLabel = (webhook.method || "POST").toUpperCase().padEnd(6);
+        let triggerLabel = "webhook trigger";
+
+        if (webhook.provider_type) {
+          const aliasPart = webhook.provider_alias
+            ? `:${webhook.provider_alias}`
+            : "";
+          const triggerType = webhook.trigger_type || "webhook";
+          triggerLabel = `${webhook.provider_type}${aliasPart}.${triggerType}`;
+        } else if (webhook.trigger_type) {
+          triggerLabel = webhook.trigger_type;
+        }
+
+        console.log(`   ${methodLabel} ${webhook.url} — ${triggerLabel}`);
+      }
+      console.log();
+    }
   }
 
   /**
@@ -224,7 +249,10 @@ export class DevModeOrchestrator {
     );
 
     // Re-validate providers
-    await validateProviders(result.usedProviders, { interactive: true });
+    await validateProviders(result.usedProviders, {
+      interactive: true,
+      namespaceId: this.workflow!.namespaceId,
+    });
 
     // Update event routing
     await this.eventRouter.updateTriggers(result.triggers);

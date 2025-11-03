@@ -157,6 +157,12 @@ importers:
         specifier: ^4.19.2
         version: 4.20.6
 
+  examples/7_jira:
+    devDependencies:
+      tsx:
+        specifier: ^4.20.6
+        version: 4.20.6
+
 packages:
 
   '@ai-sdk/anthropic@2.0.39':

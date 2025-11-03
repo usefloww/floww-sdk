@@ -6,6 +6,7 @@ import { randomUUID } from "crypto";
 type WebhookMetadata = {
   trigger: WebhookTrigger;
   path: string;
+  url: string;
   metadata: Map<string, any>;
 };
 
@@ -57,6 +58,7 @@ export class WebhookEventProducer implements EventProducer {
       this.webhooks.set(path, {
         trigger,
         path,
+        url: webhookUrl,
         metadata,
       });
 
@@ -154,5 +156,19 @@ export class WebhookEventProducer implements EventProducer {
       this.app = null;
       this.isServerStarted = false;
     }
+  }
+
+  getAvailableWebhooks(): Array<{
+    method: string;
+    url: string;
+    path: string;
+    trigger: WebhookTrigger;
+  }> {
+    return Array.from(this.webhooks.values()).map((webhookMeta) => ({
+      method: webhookMeta.trigger.method || "POST",
+      url: webhookMeta.url,
+      path: webhookMeta.path,
+      trigger: webhookMeta.trigger,
+    }));
   }
 }

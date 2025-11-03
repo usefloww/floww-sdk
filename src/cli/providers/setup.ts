@@ -3,7 +3,6 @@ import {
   outro,
   text,
   confirm,
-  select,
   isCancel,
   cancel,
 } from "@clack/prompts";
@@ -11,13 +10,13 @@ import {
   fetchProviderType,
   createProvider,
   ProviderSetupStep,
-  fetchNamespaces,
 } from "../api/apiMethods";
 import { UsedProvider } from "./availability";
 import { logger } from "../utils/logger";
 
 export async function setupUnavailableProviders(
-  unavailableProviders: UsedProvider[]
+  unavailableProviders: UsedProvider[],
+  namespaceId: string
 ): Promise<void> {
   if (unavailableProviders.length === 0) {
     return;
@@ -56,38 +55,12 @@ export async function setupUnavailableProviders(
     return;
   }
 
-  // Get available namespaces
-  const namespaces = await logger.task(
-    "Fetching namespaces",
-    async () => await fetchNamespaces()
-  );
-
-  let selectedNamespaceId: string;
-
-  if (namespaces.length === 1) {
-    selectedNamespaceId = namespaces[0].id;
-    logger.plain(`Using namespace: ${namespaces[0].id}`);
-  } else {
-    const namespaceChoice = await select({
-      message: "Select a namespace for these providers:",
-      options: namespaces.map((ns) => ({
-        value: ns.id,
-        label: ns.display_name || ns.name,
-        hint: ns.name,
-      })),
-    });
-
-    if (isCancel(namespaceChoice)) {
-      cancel("Operation cancelled.");
-      process.exit(0);
-    }
-
-    selectedNamespaceId = namespaceChoice as string;
-  }
+  // Use the workflow's namespace (no prompt needed)
+  logger.plain(`Using workflow namespace: ${namespaceId}`);
 
   // Set up each unavailable provider
   for (const provider of unavailableProviders) {
-    await setupSingleProvider(provider, selectedNamespaceId);
+    await setupSingleProvider(provider, namespaceId);
   }
 
   outro("✅ All providers have been configured successfully!");

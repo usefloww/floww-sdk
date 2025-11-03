@@ -1,0 +1,12 @@
+{
+  "name": "floww-sdk-example-jira",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "floww": "tsx ../../src/cli/index.ts",
+    "floww-local": "tsx ../../src/cli/index.ts --backend-url http://localhost:8000"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.6"
+  }
+}

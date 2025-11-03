@@ -1,0 +1,4 @@
+workflowId: 6d4ab5da-c6ad-40a7-8a26-3bd26c2e34d4
+name: test-jira
+version: 1.0.0
+entrypoint: main.ts

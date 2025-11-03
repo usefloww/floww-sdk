@@ -12,6 +12,7 @@ export type { ProviderAvailabilityResult };
 
 export interface ValidateProvidersOptions {
   interactive: boolean;
+  namespaceId: string;
 }
 
 /**
@@ -72,7 +73,7 @@ export async function validateProviders(
     console.log(
       `⚠️  ${availability.unavailable.length} provider(s) need configuration`,
     );
-    await setupUnavailableProviders(availability.unavailable);
+    await setupUnavailableProviders(availability.unavailable, options.namespaceId);
 
     logger.debugInfo("All providers have been configured!");
   } else {
