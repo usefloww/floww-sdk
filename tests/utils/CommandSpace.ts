@@ -1,6 +1,7 @@
 import { spawn, ChildProcess } from "child_process";
 import { promises as fs } from "fs";
 import path from "path";
+import * as pty from "@lydell/node-pty";
 
 export interface File {
   name: string;
@@ -8,20 +9,32 @@ export interface File {
 }
 
 class BackgroundCommand {
-  private process: ChildProcess;
+  private process: ChildProcess | pty.IPty;
   private stdoutData = "";
   private stderrData = "";
+  private isPty: boolean;
 
-  constructor(process: ChildProcess) {
+  constructor(process: ChildProcess | pty.IPty, isPty = false) {
     this.process = process;
+    this.isPty = isPty;
 
-    process.stdout?.on("data", (data) => {
-      this.stdoutData += data.toString();
-    });
+    if (isPty) {
+      // PTY mode: all output comes through onData
+      const ptyProcess = process as pty.IPty;
+      ptyProcess.onData((data) => {
+        this.stdoutData += data;
+      });
+    } else {
+      // Pipe mode: separate stdout and stderr
+      const childProcess = process as ChildProcess;
+      childProcess.stdout?.on("data", (data) => {
+        this.stdoutData += data.toString();
+      });
 
-    process.stderr?.on("data", (data) => {
-      this.stderrData += data.toString();
-    });
+      childProcess.stderr?.on("data", (data) => {
+        this.stderrData += data.toString();
+      });
+    }
   }
 
   stdout(): string {
@@ -32,8 +45,82 @@ class BackgroundCommand {
     return this.stderrData;
   }
 
+  /**
+   * Write raw input to the process stdin
+   * @param input - The input string to write (e.g., "yes\n" or ANSI escape sequences)
+   */
+  write(input: string): void {
+    if (this.isPty) {
+      (this.process as pty.IPty).write(input);
+    } else {
+      const childProcess = this.process as ChildProcess;
+      if (!childProcess.stdin) {
+        throw new Error("Process stdin is not available");
+      }
+      childProcess.stdin.write(input);
+    }
+  }
+
+  /**
+   * Close the stdin stream
+   */
+  end(): void {
+    if (!this.isPty) {
+      const childProcess = this.process as ChildProcess;
+      if (childProcess.stdin) {
+        childProcess.stdin.end();
+      }
+    }
+  }
+
+  /**
+   * Send arrow up key press (ANSI escape sequence)
+   */
+  writeArrowUp(): void {
+    this.write("\x1B[A");
+  }
+
+  /**
+   * Send arrow down key press (ANSI escape sequence)
+   */
+  writeArrowDown(): void {
+    this.write("\x1B[B");
+  }
+
+  /**
+   * Send arrow right key press (ANSI escape sequence)
+   */
+  writeArrowRight(): void {
+    this.write("\x1B[C");
+  }
+
+  /**
+   * Send arrow left key press (ANSI escape sequence)
+   */
+  writeArrowLeft(): void {
+    this.write("\x1B[D");
+  }
+
+  /**
+   * Send enter key press
+   */
+  writeEnter(): void {
+    this.write("\r");
+  }
+
+  /**
+   * Send space key press
+   */
+  writeSpace(): void {
+    this.write(" ");
+  }
+
   kill(): void {
-    this.process.kill("SIGTERM");
+    if (this.isPty) {
+      (this.process as pty.IPty).kill();
+    } else {
+      (this.process as ChildProcess).kill("SIGTERM");
+    }
   }
 }
 
@@ -57,6 +144,48 @@ export class CommandSpace {
     }
   }
 
+  async setupRealAuth(): Promise<void> {
+    // Copy from real auth file for now from user home directory
+    const homeDir = process.env.HOME;
+    if (!homeDir) {
+      throw new Error("HOME environment variable is not set");
+    }
+    if (!this.tempDir) {
+      throw new Error("CommandSpace not initialized");
+    }
+    const realConfigDir = path.join(homeDir, ".config", "floww");
+    const tempConfigDir = path.join(this.tempDir, ".config", "floww");
+
+    await fs.cp(realConfigDir, tempConfigDir, { recursive: true });
+  }
+
+  async setupMockAuth(): Promise<void> {
+    if (!this.tempDir) {
+      throw new Error("CommandSpace not initialized");
+    }
+    const configDir = path.join(this.tempDir, ".config", "floww");
+    const authFile = path.join(configDir, "auth.json");
+
+    // Ensure config directory exists
+    await fs.mkdir(configDir, { recursive: true });
+
+    // Write mock auth tokens (valid for 1 hour)
+    const mockAuth = {
+      accessToken: "mock-access-token-123",
+      refreshToken: "mock-refresh-token-456",
+      expiresAt: Date.now() + 3600000, // 1 hour from now
+      user: {
+        id: "test-user-123",
+        email: "test@example.com",
+        firstName: "Test",
+        lastName: "User",
+      },
+    };
+
+    await fs.writeFile(authFile, JSON.stringify(mockAuth, null, 2));
+    await fs.chmod(authFile, 0o600);
+  }
+
   async putFile(file: File): Promise<void> {
     if (!this.tempDir) {
       throw new Error("CommandSpace not initialized");
@@ -70,10 +199,15 @@ export class CommandSpace {
     await fs.writeFile(filePath, file.content);
   }
 
-  backgroundCommand(commandString: string): BackgroundCommand {
+  backgroundCommand(
+    commandString: string,
+    options?: { tty?: boolean }
+  ): BackgroundCommand {
     if (!this.tempDir) {
       throw new Error("CommandSpace not initialized");
     }
+
+    const useTty = options?.tty ?? false;
 
     // Parse command string - assume it starts with "dev" and extract args
     const args = commandString.split(" ");
@@ -91,23 +225,50 @@ export class CommandSpace {
       "cli.mjs"
     );
 
-    const childProcess = spawn(
-      nodeExecutable,
-      [tsxBin, "../../src/cli/index.ts", ...args],
-      {
-        cwd: this.tempDir,
-        env: {
-          ...process.env,
-          FLOWW_NAMESPACE_ID: "test-namespace-id",
-          PATH: path.dirname(nodeExecutable) + ":" + (process.env.PATH || ""),
-          // Use isolated config directory for tests
-          XDG_CONFIG_HOME: path.join(this.tempDir, ".config"),
-        },
-        stdio: "pipe",
-      }
-    );
+    // Common environment variables
+    const env = {
+      ...process.env,
+      FLOWW_NAMESPACE_ID: "test-namespace-id",
+      PATH: path.dirname(nodeExecutable) + ":" + (process.env.PATH || ""),
+      // Use isolated config directory for tests
+      XDG_CONFIG_HOME: path.join(this.tempDir, ".config"),
+      // Enable colors in prompts for better terminal emulation
+      FORCE_COLOR: "1",
+    };
 
-    const command = new BackgroundCommand(childProcess);
+    let command: BackgroundCommand;
+
+    if (useTty) {
+      // Use PTY for full terminal emulation (makes process.stdout.isTTY = true)
+      const ptyProcess = pty.spawn(
+        nodeExecutable,
+        [tsxBin, "../../src/cli/index.ts", ...args],
+        {
+          name: "xterm-color",
+          cols: 80,
+          rows: 30,
+          cwd: this.tempDir,
+          env,
+        }
+      );
+
+      command = new BackgroundCommand(ptyProcess, true);
+    } else {
+      // Use regular spawn with pipes (process.stdout.isTTY = false)
+      const childProcess = spawn(
+        nodeExecutable,
+        [tsxBin, "../../src/cli/index.ts", ...args],
+        {
+          cwd: this.tempDir,
+          env,
+          // Explicitly enable stdin, stdout, stderr as pipes
+          stdio: ["pipe", "pipe", "pipe"],
+        }
+      );
+
+      command = new BackgroundCommand(childProcess, false);
+    }
+
     this.processes.push(command);
     return command;
   }

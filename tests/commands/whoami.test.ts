@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { CommandSpace } from "./utils/CommandSpace";
-import { waitUntilStderr, waitUntilStdout } from "./utils/CommandTestHelpers";
+import { CommandSpace } from "../utils/CommandSpace";
+import { waitUntilStderr, waitUntilStdout } from "../utils/CommandTestHelpers";
 import fs from "fs";
 import path from "path";
 
@@ -41,32 +41,8 @@ describe("Whoami Command Tests", () => {
   });
 
   describe("Authenticated State", () => {
-    beforeEach(async () => {
-      // Create auth tokens in the test config directory
-      const configDir = path.join(commandSpace.tempDir, ".config", "floww");
-      const authFile = path.join(configDir, "auth.json");
-
-      // Ensure config directory exists
-      fs.mkdirSync(configDir, { recursive: true });
-
-      // Write mock auth tokens (valid for 1 hour)
-      const mockAuth = {
-        accessToken: "mock-access-token-123",
-        refreshToken: "mock-refresh-token-456",
-        expiresAt: Date.now() + 3600000, // 1 hour from now
-        user: {
-          id: "test-user-123",
-          email: "test@example.com",
-          firstName: "Test",
-          lastName: "User",
-        },
-      };
-
-      fs.writeFileSync(authFile, JSON.stringify(mockAuth, null, 2));
-      fs.chmodSync(authFile, 0o600);
-    });
-
     it("should show user info when authenticated", async () => {
+      await commandSpace.setupRealAuth();
       const command = commandSpace.backgroundCommand("whoami");
 
       // Wait for success message
@@ -78,6 +54,7 @@ describe("Whoami Command Tests", () => {
     });
 
     it("should show refresh token status", async () => {
+      await commandSpace.setupRealAuth();
       const command = commandSpace.backgroundCommand("whoami");
 
       await waitUntilStdout(command, "Has refresh token", 5000);

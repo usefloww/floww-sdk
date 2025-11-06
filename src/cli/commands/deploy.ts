@@ -413,26 +413,45 @@ export async function deployCommand() {
   const triggersMetadata = convertTriggersToMetadata(executionResult.triggers);
 
   // 8. Create workflow deployment with triggers metadata
-  const deployment = await logger.task("🚀 Deploying workflow", async () => {
-    return await createWorkflowDeployment({
-      workflow_id: projectConfig.workflowId!,
-      runtime_id: runtimeResult.id,
-      code: userCode,
-      triggers: triggersMetadata,
+  try {
+    const deployment = await logger.task("🚀 Deploying workflow", async () => {
+      return await createWorkflowDeployment({
+        workflow_id: projectConfig.workflowId!,
+        runtime_id: runtimeResult.id,
+        code: userCode,
+        triggers: triggersMetadata,
+      });
     });
-  });
 
-  console.log("\n✨ Deployment successful!");
+    console.log("\n✨ Deployment successful!");
 
-  // Display webhook URLs if available
-  if (deployment.webhooks && deployment.webhooks.length > 0) {
-    console.log("\n📌 Webhook URLs:");
-    for (const webhook of deployment.webhooks) {
-      const pathInfo = webhook.path
-        ? ` ${webhook.method || "POST"} ${webhook.path}`
-        : "";
-      console.log(`  ${pathInfo}`);
-      console.log(`     → ${webhook.url}`);
+    // Display webhook URLs if available
+    if (deployment.webhooks && deployment.webhooks.length > 0) {
+      console.log("\n📌 Webhook URLs:");
+      for (const webhook of deployment.webhooks) {
+        const pathInfo = webhook.path
+          ? ` ${webhook.method || "POST"} ${webhook.path}`
+          : "";
+        console.log(`  ${pathInfo}`);
+        console.log(`     → ${webhook.url}`);
+      }
     }
+  } catch (error: any) {
+    // Check if this is a trigger failure error
+    if (error.failedTriggers && Array.isArray(error.failedTriggers)) {
+      console.log("\n❌ Deployment failed: Trigger creation errors");
+      console.log("\n⚠️  Failed Triggers:");
+      for (const trigger of error.failedTriggers) {
+        const triggerName = `${trigger.provider_type}/${trigger.trigger_type}`;
+        const errorMsg = trigger.error || "Unknown error";
+        // Clean up error message - remove the "For more information" link if present
+        const cleanError = errorMsg.split("\nFor more information")[0].trim();
+        console.log(`  ✗ ${triggerName}: ${cleanError}`);
+      }
+      process.exit(1);
+    }
+    
+    // Re-throw other errors
+    throw error;
   }
 }

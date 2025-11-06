@@ -1,4 +1,4 @@
-workflowId: 7d58e7e4-eaba-4efd-b2a3-a7532321020d
+workflowId: 20eb9449-9c5a-41eb-95e1-d2ee78f08c9d
 name: Slack
 version: 1.0.0
 entrypoint: main.ts

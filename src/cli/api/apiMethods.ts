@@ -315,7 +315,30 @@ export async function createWorkflowDeployment(
     body: JSON.stringify(deploymentData),
   });
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+    const errorText = await response.text();
+
+    // Try to parse error details for trigger failures
+    try {
+      const errorData = JSON.parse(errorText);
+      if (errorData.detail && errorData.detail.failed_triggers) {
+        // This is a trigger failure error - throw a special error with details
+        const triggerError = new Error(
+          errorData.detail.message || "Failed to create triggers"
+        );
+        (triggerError as any).failedTriggers = errorData.detail.failed_triggers;
+        throw triggerError;
+      }
+    } catch (parseError: any) {
+      // If this is our trigger error, re-throw it
+      if (parseError.failedTriggers) {
+        throw parseError;
+      }
+      // Otherwise, it's a JSON parse error or other error, throw generic error
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
+    }
+
+    // Fallback (shouldn't reach here)
+    throw new Error(`HTTP ${response.status}: ${errorText}`);
   }
   return (await response.json()) as WorkflowDeploymentResponse;
 }
@@ -430,7 +453,7 @@ export async function deleteProvider(providerId: string): Promise<void> {
 // Dev Mode API methods
 export interface DevTriggerSyncRequest {
   workflow_id: string;
-  triggers: any[];  // TriggerMetadata[]
+  triggers: any[]; // TriggerMetadata[]
 }
 
 export interface DevTriggerSyncResponse {
@@ -445,7 +468,30 @@ export async function syncDevTriggers(
     body: JSON.stringify(data),
   });
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+    const errorText = await response.text();
+
+    // Try to parse error details for trigger failures
+    try {
+      const errorData = JSON.parse(errorText);
+      if (errorData.detail && errorData.detail.failed_triggers) {
+        // This is a trigger failure error - throw a special error with details
+        const triggerError = new Error(
+          errorData.detail.message || "Failed to create triggers"
+        );
+        (triggerError as any).failedTriggers = errorData.detail.failed_triggers;
+        throw triggerError;
+      }
+    } catch (parseError: any) {
+      // If this is our trigger error, re-throw it
+      if (parseError.failedTriggers) {
+        throw parseError;
+      }
+      // Otherwise, it's a JSON parse error or other error, throw generic error
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
+    }
+
+    // Fallback (shouldn't reach here)
+    throw new Error(`HTTP ${response.status}: ${errorText}`);
   }
   return (await response.json()) as DevTriggerSyncResponse;
 }

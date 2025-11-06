@@ -1,4 +1,4 @@
-import { loadProjectConfig } from "../config/projectConfig";
+import { loadProjectConfig, updateProjectConfig } from "../config/projectConfig";
 import { DebugContext } from "@/codeExecution";
 import { EventRouter } from "./EventRouter";
 import {
@@ -10,6 +10,7 @@ import {
 import { executeUserCode } from "./userCode";
 import { validateProviders } from "./providers";
 import { logger } from "../utils/logger";
+import { selectOrCreateWorkflow } from "../utils/promptUtils";
 
 export interface DevModeOptions {
   entrypoint: string;
@@ -66,13 +67,53 @@ export class DevModeOrchestrator {
    */
   async start(): Promise<void> {
     // Load project configuration
-    const projectConfig = loadProjectConfig();
+    let projectConfig = loadProjectConfig();
 
     // Step 1: Check workflow exists
-    this.workflow = await logger.debugTask(
-      "Checking workflow",
-      async () => await resolveWorkflow(projectConfig),
-    );
+    try {
+      this.workflow = await logger.debugTask(
+        "Checking workflow",
+        async () => await resolveWorkflow(projectConfig),
+      );
+    } catch (error) {
+      // Check if it's a 404 (workflow not found) and we're in interactive mode
+      const is404 = error instanceof Error && error.message.includes("404");
+
+      if (is404 && logger.interactive) {
+        logger.warn(`Workflow not found. Let's select or create a workflow.`);
+
+        try {
+          // selectOrCreateWorkflow will first prompt for namespace selection,
+          // then prompt for workflow selection/creation
+          const { workflowId, workflow: selectedWorkflow } =
+            await selectOrCreateWorkflow({
+              suggestedName: projectConfig.name,
+              allowCreate: true,
+              // No namespaceId provided - user will be prompted to select namespace first
+            });
+
+          // Update project config with the selected workflow
+          projectConfig = updateProjectConfig({ workflowId });
+
+          // Retry resolving workflow with updated config
+          this.workflow = await logger.debugTask(
+            "Checking workflow",
+            async () => await resolveWorkflow(projectConfig),
+          );
+        } catch (selectionError) {
+          logger.error(
+            "Failed to select workflow:",
+            selectionError instanceof Error
+              ? selectionError.message
+              : selectionError
+          );
+          throw selectionError;
+        }
+      } else {
+        // Re-throw the original error if not interactive or not a 404
+        throw error;
+      }
+    }
 
     // Create event router now that we have workflow ID
     this.eventRouter = new EventRouter(
@@ -104,9 +145,30 @@ export class DevModeOrchestrator {
     });
 
     // Step 4.5: Sync triggers with backend (deploy webhooks to production)
-    await logger.debugTask("Syncing triggers with backend", async () => {
-      await this.syncTriggersWithBackend(result.triggers);
-    });
+    try {
+      await logger.debugTask("Syncing triggers with backend", async () => {
+        await this.syncTriggersWithBackend(result.triggers);
+      });
+    } catch (error: any) {
+      // Check if this is a trigger failure error
+      if (error.failedTriggers && Array.isArray(error.failedTriggers)) {
+        logger.plain("");
+        logger.error("Syncing triggers with backend failed");
+        logger.plain("");
+        logger.warn("Failed Triggers:");
+        for (const trigger of error.failedTriggers) {
+          const triggerName = `${trigger.provider_type}/${trigger.trigger_type}`;
+          const errorMsg = trigger.error || "Unknown error";
+          // Clean up error message - remove the "For more information" link if present
+          const cleanError = errorMsg.split("\nFor more information")[0].trim();
+          logger.plain(`  ✗ ${triggerName}: ${cleanError}`);
+        }
+        logger.plain("");
+        throw new Error("Failed to sync triggers with backend");
+      }
+      // Re-throw other errors
+      throw error;
+    }
 
     // Step 5: Setup event routing
     await logger.debugTask("Starting Flow Engine", async () => {
@@ -214,7 +276,28 @@ export class DevModeOrchestrator {
     );
 
     // Sync triggers with backend
-    await this.syncTriggersWithBackend(result.triggers);
+    try {
+      await this.syncTriggersWithBackend(result.triggers);
+    } catch (error: any) {
+      // Check if this is a trigger failure error
+      if (error.failedTriggers && Array.isArray(error.failedTriggers)) {
+        logger.plain("");
+        logger.error("Syncing triggers with backend failed");
+        logger.plain("");
+        logger.warn("Failed Triggers:");
+        for (const trigger of error.failedTriggers) {
+          const triggerName = `${trigger.provider_type}/${trigger.trigger_type}`;
+          const errorMsg = trigger.error || "Unknown error";
+          // Clean up error message - remove the "For more information" link if present
+          const cleanError = errorMsg.split("\nFor more information")[0].trim();
+          logger.plain(`  ✗ ${triggerName}: ${cleanError}`);
+        }
+        logger.plain("");
+        throw new Error("Failed to sync triggers with backend");
+      }
+      // Re-throw other errors
+      throw error;
+    }
 
     // Update event routing with new triggers
     await this.eventRouter.updateTriggers(result.triggers);

@@ -6,6 +6,6 @@ export default defineConfig({
     globals: true,
     testTimeout: 30000, // 30 seconds for E2E tests
     hookTimeout: 30000, // 30 seconds for setup/teardown
-    setupFiles: ["./tests/setup.ts"], // Global test setup (MSW, mocks)
+    // setupFiles: ["./tests/setup.ts"], // Global test setup (MSW, mocks)
   },
 });
