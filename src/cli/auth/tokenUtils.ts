@@ -14,6 +14,20 @@ export async function getAuthToken(): Promise<string | null> {
 }
 
 export async function getValidAuth(): Promise<StoredAuth | null> {
+  // Check for FLOWW_TOKEN environment variable first (takes priority over all other auth methods)
+  const flowwToken = process.env.FLOWW_TOKEN;
+  if (flowwToken) {
+    // Return a minimal StoredAuth object for API key authentication
+    // API keys don't expire (they're revoked instead), so set a far-future expiration
+    // to prevent refresh attempts
+    return {
+      accessToken: flowwToken,
+      refreshToken: undefined,
+      user: {}, // Minimal user object (not critical for API key auth)
+      expiresAt: new Date("2100-01-01").getTime(), // Far-future timestamp
+    };
+  }
+
   const profile = loadActiveProfile();
 
   if (profile) {
@@ -65,7 +79,9 @@ async function refreshTokenWithProfile(
   }
 }
 
-async function refreshTokenLegacy(auth: StoredAuth): Promise<StoredAuth | null> {
+async function refreshTokenLegacy(
+  auth: StoredAuth
+): Promise<StoredAuth | null> {
   if (!auth.refreshToken) {
     return null;
   }
@@ -83,7 +99,8 @@ async function refreshTokenLegacy(auth: StoredAuth): Promise<StoredAuth | null> 
         authorization_endpoint: `${apiUrl}/user_management/authorize`,
         issuer: `${apiUrl}/user_management`,
       },
-      websocket_url: config.websocketUrl || "wss://ws.usefloww.dev/connection/websocket",
+      websocket_url:
+        config.websocketUrl || "wss://ws.usefloww.dev/connection/websocket",
     });
     const refreshedAuth = await cliAuth.refreshAccessToken(auth.refreshToken);
 

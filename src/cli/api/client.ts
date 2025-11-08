@@ -34,7 +34,7 @@ export class ApiClient {
    */
   async apiCall<T = any>(
     endpoint: string,
-    options: ApiCallOptions = {},
+    options: ApiCallOptions = {}
   ): Promise<ApiResponse<T>> {
     const { method = "GET", body, headers = {} } = options;
 
@@ -48,7 +48,9 @@ export class ApiClient {
     }
 
     // Prepare request
-    const url = `${this.baseUrl}${endpoint.startsWith("/") ? endpoint : "/" + endpoint}`;
+    const url = `${this.baseUrl}${
+      endpoint.startsWith("/") ? endpoint : "/" + endpoint
+    }`;
     const requestHeaders: Record<string, string> = {
       "Content-Type": "application/json",
       Authorization: `Bearer ${auth.accessToken}`,
@@ -71,8 +73,9 @@ export class ApiClient {
         const refreshedAuth = await getValidAuth();
         if (refreshedAuth && refreshedAuth.accessToken !== auth.accessToken) {
           // Retry the request with new token
-          requestHeaders["Authorization"] =
-            `Bearer ${refreshedAuth.accessToken}`;
+          requestHeaders[
+            "Authorization"
+          ] = `Bearer ${refreshedAuth.accessToken}`;
           const retryResponse = await fetch(url, {
             method,
             headers: requestHeaders,
@@ -132,7 +135,7 @@ function createApiClient(): ApiClient {
 export async function apiCall<T = any>(
   endpoint: string,
   options: ApiCallOptions = {},
-  cliOptions: Partial<FlowwConfig> = {},
+  cliOptions: Partial<FlowwConfig> = {}
 ): Promise<ApiResponse<T>> {
   const client = createApiClient(cliOptions);
   return client.apiCall<T>(endpoint, options);

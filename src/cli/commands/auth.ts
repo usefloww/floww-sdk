@@ -10,6 +10,8 @@ import {
 import { fetchBackendConfig } from "../config/backendConfig";
 import { getConfigValue } from "../config/configUtils";
 import { logger } from "../utils/logger";
+import { defaultApiClient } from "../api/client";
+import chalk from "chalk";
 
 async function loginCommand() {
   const backendUrl = getConfigValue("backendUrl");
@@ -52,33 +54,73 @@ async function whoamiCommand() {
     process.exit(1);
   }
 
-  const tokens = profile.auth;
-  const now = Date.now();
-  const expiresIn = Math.floor((tokens.expiresAt - now) / 1000);
-  const isExpired = now >= tokens.expiresAt;
+  try {
+    const client = defaultApiClient();
+    const response = await client.apiCall("/whoami");
 
-  logger.plain(`Profile: ${profile.name}`);
-  logger.plain(`Backend: ${profile.backendUrl}`);
-  logger.plain(`Provider: ${profile.config.auth.provider}`);
-  logger.plain(`👤 Logged in as: ${tokens.user.email}`);
-  logger.plain(`📧 User ID: ${tokens.user.id}`);
-  logger.plain(
-    `⏰ Token expires: ${new Date(tokens.expiresAt).toLocaleString()}`
-  );
+    if (response.error || !response.data) {
+      logger.error(
+        response.error || "Failed to fetch user information from backend"
+      );
+      process.exit(1);
+    }
 
-  if (isExpired) {
-    logger.warn(
-      `Token is EXPIRED (expired ${Math.abs(expiresIn)} seconds ago)`
+    const user = response.data;
+
+    // Helper function to format labels with consistent width
+    const formatLabel = (label: string) => {
+      return chalk.gray(label.padEnd(12));
+    };
+
+    // Display user information in a nice format
+    console.log("\n" + chalk.bold.cyan("👤 User Information"));
+    console.log(chalk.gray("─".repeat(50)));
+
+    // Don't show email for service accounts
+    if (user.user_type !== "service_account") {
+      console.log(
+        `  ${formatLabel("Email:")}${
+          user.email ? chalk.white.bold(user.email) : chalk.dim("N/A")
+        }`
+      );
+    }
+
+    if (user.first_name || user.last_name) {
+      const fullName = [user.first_name, user.last_name]
+        .filter(Boolean)
+        .join(" ");
+      console.log(`  ${formatLabel("Name:")}${chalk.white(fullName)}`);
+    }
+
+    console.log(`  ${formatLabel("User ID:")}${chalk.dim(user.id)}`);
+
+    if (user.user_type) {
+      const userTypeColor =
+        user.user_type === "human" ? chalk.green : chalk.blue;
+      console.log(`  ${formatLabel("Type:")}${userTypeColor(user.user_type)}`);
+    }
+
+    if (user.created_at) {
+      const createdAt = new Date(user.created_at).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+      console.log(`  ${formatLabel("Created on:")}${chalk.white(createdAt)}`);
+    }
+
+    console.log(chalk.gray("─".repeat(50)));
+    console.log(chalk.bold.cyan("\n🔗 Connection"));
+    console.log(chalk.gray("─".repeat(50)));
+    console.log(
+      `  ${formatLabel("Backend:")}${chalk.cyan(profile.backendUrl)}`
     );
-  } else {
-    logger.success(
-      `Token is valid (expires in ${expiresIn} seconds / ${Math.floor(
-        expiresIn / 60
-      )} minutes)`
-    );
+    console.log(`  ${formatLabel("Profile:")}${chalk.white(profile.name)}`);
+    console.log();
+  } catch (error) {
+    logger.error("Failed to fetch user information:", error);
+    process.exit(1);
   }
-
-  logger.plain(`🔑 Has refresh token: ${tokens.refreshToken ? "Yes" : "No"}`);
 }
 
 export { loginCommand, logoutCommand, whoamiCommand };
