@@ -6,6 +6,7 @@ export * from "./providers/builtin";
 export * from "./providers/gitlab";
 export * from "./providers/jira";
 export * from "./providers/slack";
+export * from "./providers/todoist";
 export * from "./providers/ai";
 
 // Code execution exports

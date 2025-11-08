@@ -1,9 +1,12 @@
 import {
   fetchWorkflows,
-  createWorkflow,
+  createWorkflow as apiCreateWorkflow,
   fetchNamespaces,
 } from "../api/apiMethods";
 import { logger } from "./logger";
+
+// Re-export createWorkflow from API methods for backward compatibility
+export { apiCreateWorkflow as createWorkflow };
 
 export interface WorkflowSelectionOptions {
   namespaceId?: string;
@@ -95,7 +98,7 @@ export async function setupWorkflow(
     if (!description) description = undefined;
 
     selectedWorkflow = await logger.task("Creating new workflow", async () => {
-      return await createWorkflow(
+      return await apiCreateWorkflow(
         workflowName,
         selectedNamespaceId,
         description,
@@ -120,3 +123,6 @@ export async function setupWorkflow(
     },
   };
 }
+
+// Backward compatibility alias
+export { setupWorkflow as selectOrCreateWorkflow };
