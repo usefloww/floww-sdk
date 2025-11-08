@@ -47,6 +47,33 @@ export type SlackOnMessageArgs = {
   handler: Handler<WebhookEvent<SlackMessageEvent>, WebhookContext>;
 };
 
+// Slack Events API - Reaction Added Event
+// Reference: https://api.slack.com/events/reaction_added
+export type SlackReactionEvent = {
+  type: "event_callback";
+  team_id: string;
+  event: {
+    type: "reaction_added";
+    user: string; // User who added the reaction
+    reaction: string; // Name of the emoji (without ::)
+    item_user: string; // User who created the item
+    item: {
+      type: "message";
+      channel: string;
+      ts: string;
+    };
+    event_ts: string;
+  };
+  event_time: number;
+};
+
+export type SlackOnReactionArgs = {
+  channelId?: string; // Optional: filter by specific channel
+  userId?: string; // Optional: filter by specific user (who added the reaction)
+  reaction?: string; // Optional: filter by specific reaction emoji name
+  handler: Handler<WebhookEvent<SlackReactionEvent>, WebhookContext>;
+};
+
 class SlackActions {
   constructor(private getApi: () => SlackApi) {}
 
@@ -207,6 +234,39 @@ export class Slack extends BaseProvider {
           input: {
             channel_id: args.channelId,
             user_id: args.userId,
+          },
+        }
+      );
+    },
+
+    /**
+     * Triggers when a reaction is added to a message in a Slack channel.
+     *
+     * The trigger is registered on the backend and filtering is handled server-side.
+     *
+     * @param args Configuration for the reaction trigger
+     * @param args.channelId Optional: Filter reactions from a specific channel
+     * @param args.userId Optional: Filter reactions from a specific user (who added the reaction)
+     * @param args.reaction Optional: Filter by specific reaction emoji name (e.g., "thumbsup")
+     * @param args.handler Function to handle incoming reaction events
+     */
+    onReaction: (
+      args: SlackOnReactionArgs
+    ): WebhookTrigger<SlackReactionEvent> => {
+      return registerTrigger(
+        {
+          type: "webhook",
+          handler: args.handler,
+          method: "POST",
+        },
+        {
+          type: this.providerType,
+          alias: this.credentialName,
+          triggerType: "onReaction",
+          input: {
+            channel_id: args.channelId,
+            user_id: args.userId,
+            reaction: args.reaction,
           },
         }
       );

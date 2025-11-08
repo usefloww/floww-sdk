@@ -7,7 +7,7 @@ import {
 } from "../config/projectConfig";
 import { fetchNamespaces } from "../api/apiMethods";
 import { logger } from "../utils/logger";
-import { selectOrCreateWorkflow } from "../utils/promptUtils";
+import { createWorkflow } from "../utils/promptUtils";
 
 interface InitOptions {
   force?: boolean;
@@ -108,7 +108,7 @@ export async function initCommand(
     }
 
     // Select or create workflow using shared utility
-    const { workflowId } = await selectOrCreateWorkflow({
+    const { workflowId } = await createWorkflow({
       suggestedName: name,
       allowCreate: true,
     });

@@ -25,7 +25,7 @@ export interface WorkflowSelectionResult {
  * Interactive workflow selection or creation flow
  * Used by both init and deploy commands when workflow selection is needed
  */
-export async function selectOrCreateWorkflow(
+export async function setupWorkflow(
   options: WorkflowSelectionOptions,
 ): Promise<WorkflowSelectionResult> {
   const { namespaceId, suggestedName, allowCreate = true } = options;
@@ -62,48 +62,9 @@ export async function selectOrCreateWorkflow(
     }
   }
 
-  // Check for existing workflows in the namespace
-  const workflows = await logger.task(
-    "Checking existing workflows",
-    async () => {
-      return await fetchWorkflows();
-    },
-  );
-  const namespaceWorkflows = workflows.filter(
-    (w) => w.namespace_id === selectedNamespaceId,
-  );
-
   let workflowId: string | undefined;
   let selectedWorkflow: any;
   let isNew = false;
-
-  if (namespaceWorkflows.length > 0) {
-    const workflowOptions = namespaceWorkflows.map((w) => ({
-        value: `existing:${w.id}`,
-        label: w.name,
-        hint: w.description || "Existing workflow",
-      }));
-
-    // Add create new option if allowed
-    if (allowCreate) {
-      workflowOptions.push({
-        value: "new",
-        label: "Create new workflow",
-        hint: "Start fresh with a new workflow",
-      });
-    }
-
-    const selection = await logger.select(
-      "Choose workflow option:",
-      workflowOptions,
-    );
-
-    if (selection.startsWith("existing:")) {
-      workflowId = selection.replace("existing:", "");
-      selectedWorkflow = namespaceWorkflows.find((w) => w.id === workflowId);
-      logger.success(`Using existing workflow: ${selectedWorkflow?.name}`);
-    }
-  }
 
   // Create new workflow if needed
   if (!workflowId) {

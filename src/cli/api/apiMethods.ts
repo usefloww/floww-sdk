@@ -366,6 +366,10 @@ export interface ProviderSetupStep {
   description?: string;
   placeholder?: string;
   default?: string;
+  // Info step fields
+  message?: string;
+  action_text?: string;
+  action_url?: string;
 }
 
 export interface ProviderType {
