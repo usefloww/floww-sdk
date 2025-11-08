@@ -33,14 +33,14 @@ export async function initCommand(
       "How would you like to initialize?",
       [
         {
-          value: "current" as const,
-          label: "Initialize in current directory",
-          hint: "Add floww.yaml to existing project",
-        },
-        {
           value: "new" as const,
           label: "Create new scaffolded project",
           hint: "Generate complete project structure",
+        },
+        {
+          value: "current" as const,
+          label: "Initialize in current directory",
+          hint: "Add floww.yaml to existing project",
         },
       ],
     );
@@ -156,6 +156,7 @@ export async function initCommand(
         logger.plain("  - main.ts");
         logger.plain("  - package.json");
         logger.plain("  - Dockerfile");
+        logger.plain("  - .dockerignore");
         logger.plain("  - .gitignore");
         logger.plain("\nNext steps:");
         logger.plain(`  1. cd ${dirName}`);
@@ -225,6 +226,11 @@ async function scaffoldProject(projectDir: string, projectName: string) {
   const gitignorePath = path.join(projectDir, ".gitignore");
   createGitignore(gitignorePath);
   logger.success("Created .gitignore");
+
+  // Create .dockerignore
+  const dockerignorePath = path.join(projectDir, ".dockerignore");
+  createDockerignore(dockerignorePath);
+  logger.success("Created .dockerignore");
 }
 
 /**
@@ -349,4 +355,22 @@ Thumbs.db
 `;
 
   fs.writeFileSync(filePath, gitignore, "utf-8");
+}
+
+/**
+ * Create .dockerignore file
+ */
+function createDockerignore(filePath: string) {
+  const dockerignore = `node_modules
+npm-debug.log
+.git
+.gitignore
+.env
+.env.local
+dist
+build
+*.log
+`;
+
+  fs.writeFileSync(filePath, dockerignore, "utf-8");
 }
