@@ -113,6 +113,85 @@ export function waitUntilStderr(
 }
 
 /**
+ * Like waitUntilStdout but returns false on timeout instead of throwing
+ * Useful for optional patterns that may or may not appear
+ */
+export function waitUntilStdoutOptional(
+  command: BackgroundCommand,
+  pattern: string,
+  timeout = 2000
+): Promise<boolean> {
+  return new Promise((resolve) => {
+    const start = Date.now();
+
+    const check = () => {
+      const stdout = command.stdout();
+
+      if (stdout.includes(pattern)) {
+        resolve(true);
+      } else if (Date.now() - start > timeout) {
+        resolve(false);
+      } else {
+        setTimeout(check, 100);
+      }
+    };
+    check();
+  });
+}
+
+export async function waitUntilProgress(
+  command: BackgroundCommand,
+  pattern: string,
+  initialTimeout = 3000,
+  maxSeconds = 30
+) {
+  // Uploading runtime image (this may take a moment) [0s]
+  // Uploading runtime image (this may take a moment) [1s]
+
+  await waitUntilStdout(command, `${pattern} [0s]`, 3000);
+  for (let i = 1; i < maxSeconds; i++) {
+    const found = await waitUntilStdoutOptional(
+      command,
+      `${pattern} [${i}s]`,
+      1300
+    );
+    if (!found) break;
+  }
+}
+
+/**
+ * Wait for any of the provided patterns to appear in stdout
+ * Returns the matched pattern, or null if timeout
+ */
+export function waitUntilAnyMatch(
+  command: BackgroundCommand,
+  patterns: string[],
+  timeout = 2000
+): Promise<string | null> {
+  return new Promise((resolve) => {
+    const start = Date.now();
+
+    const check = () => {
+      const stdout = command.stdout();
+
+      for (const pattern of patterns) {
+        if (stdout.includes(pattern)) {
+          resolve(pattern);
+          return;
+        }
+      }
+
+      if (Date.now() - start > timeout) {
+        resolve(null);
+      } else {
+        setTimeout(check, 100);
+      }
+    };
+    check();
+  });
+}
+
+/**
  * Parse CLI select prompt output to find options and currently selected index
  * @param output - The stdout text containing the prompt
  * @returns Object with options array and currentIndex, or null if not parseable
@@ -245,6 +324,72 @@ export async function selectOption(
 
 export function writeArrowDown(command: BackgroundCommand) {
   command.writeArrowDown();
+}
+
+export function randomExampleFiles() {
+  // random name like test-project-123456
+  const name = `test-project-${Math.random().toString(36).substring(2, 15)}`;
+  return [
+    {
+      name: "Dockerfile",
+      content: `
+FROM base-floww
+
+# Build context is SDK root, copy pre-built SDK tarball
+COPY floww-*.tgz /tmp/
+
+# Setup /var/task with SDK
+WORKDIR /var/task
+# Create a minimal package.json for npm to work correctly
+RUN echo '{"type":"module","dependencies":{"floww":"*"}}' > package.json && \
+    npm install /tmp/floww-*.tgz && \
+    rm -rf /tmp/*.tgz
+
+# Set entrypoint from config
+ENV FLOWW_ENTRYPOINT=main.ts
+RUN echo ${name} > cache-buster.txt
+
+# No source code copying - code will be provided via Lambda event payload
+# Uses the universal handler from base-floww image
+`,
+    },
+    {
+      name: "main.ts",
+      content: `import { Builtin } from "floww";
+  
+  export const builtin = new Builtin();
+  
+  export default [
+    builtin.triggers.onCron({
+      expression: "*/1 * * * * *",
+      handler: (ctx, event) => {
+        console.log("Cron triggered", event.scheduledTime);
+      },
+    }),
+  ];
+  `,
+    },
+    {
+      name: "package.json",
+      content: `{
+    "name": "${name}",
+    "version": "1.0.0",
+    "type": "module",
+    "dependencies": {
+      "floww": "0.0.8"
+    }
+  }
+  `,
+    },
+    {
+      name: "floww.yaml",
+      content: `workflowId: 799e43a6-a238-4d7f-baa4-fe0ff223f786
+name: Test Workflow
+version: 1.0.0
+entrypoint: main.ts
+  `,
+    },
+  ];
 }
 
 export const simpleExampleFiles = [
