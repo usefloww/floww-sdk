@@ -34,6 +34,8 @@ interface BackgroundCommand {
   writeArrowUp(): void;
   writeArrowDown(): void;
   writeEnter(): void;
+  getExitCode(): number | null;
+  waitForExit(timeout?: number): Promise<number>;
 }
 
 export function waitUntilStdout(
@@ -98,6 +100,48 @@ export function waitUntilStderr(
         );
 
         // Replace the stack to show where waitUntilStderr was called from
+        if (originalStack) {
+          const lines = originalStack.split("\n");
+          const relevantLines = lines.slice(2); // Skip "Error" and this function
+          error.stack = `${error.message}\n${relevantLines.join("\n")}`;
+        }
+        reject(error);
+      } else {
+        setTimeout(check, 100);
+      }
+    };
+    check();
+  });
+}
+
+/**
+ * Wait for the process to exit and return its exit code
+ * @param command - The background command to wait for
+ * @param timeout - Maximum time to wait in milliseconds (default: 5000ms)
+ * @returns The exit code of the process
+ */
+export function waitForExit(
+  command: BackgroundCommand,
+  timeout = 5000
+): Promise<number> {
+  return new Promise((resolve, reject) => {
+    // Capture the original call stack
+    const originalStack = new Error().stack;
+    const start = Date.now();
+
+    const check = () => {
+      const exitCode = command.getExitCode();
+
+      if (exitCode !== null) {
+        resolve(exitCode);
+      } else if (Date.now() - start > timeout) {
+        const error = new Error(
+          `Timeout after ${timeout}ms waiting for process to exit\n\n` +
+            `📝 Current stdout:\n${command.stdout()}\n\n` +
+            `📝 Current stderr:\n${command.stderr()}`
+        );
+
+        // Replace the stack to show where waitForExit was called from
         if (originalStack) {
           const lines = originalStack.split("\n");
           const relevantLines = lines.slice(2); // Skip "Error" and this function

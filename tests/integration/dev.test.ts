@@ -28,11 +28,10 @@ describe("Dev Mode E2E Tests", () => {
     expect(command.stdout()).toContain("Watching:");
   });
 
-  it.todo("should load triggers", async () => {
+  it("should load triggers", async () => {
     const command = commandSpace.backgroundCommand("dev");
     await waitUntilStdout(command, "Watching:");
-    await waitUntilStdout(command, "Triggers loaded");
-    expect(command.stdout()).toContain("Triggers loaded");
+    await waitUntilStdout(command, "Event routing started with 1 trigger(s)");
   });
 
   it.todo("should reload when file changes", async () => {
@@ -40,6 +39,7 @@ describe("Dev Mode E2E Tests", () => {
 
     // Wait for dev mode to fully start
     await waitUntilStdout(command, "Watching:");
+    await waitUntilStdout(command, "Event routing started with 1 trigger(s)");
 
     // Change file
     await commandSpace.putFile({

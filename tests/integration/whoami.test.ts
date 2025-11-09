@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { CommandSpace } from "../utils/CommandSpace";
-import { waitUntilStderr, waitUntilStdout } from "../utils/CommandTestHelpers";
+import {
+  waitUntilStderr,
+  waitUntilStdout,
+  waitForExit,
+} from "../utils/CommandTestHelpers";
 import fs from "fs";
 import path from "path";
 
@@ -23,24 +27,11 @@ describe("Whoami Command Tests", () => {
       });
 
       // Wait for the command to complete and show output
-      await waitUntilStderr(command, "Not logged in", 3000);
+      await waitUntilStderr(command, "No authentication found", 3000);
 
-      expect(command.stderr()).toContain("Not logged in");
-    });
-
-    it("should exit with appropriate code when not authenticated", async () => {
-      const command = commandSpace.backgroundCommand("whoami", {
-        env: { FLOWW_TOKEN: "" },
-      });
-
-      // Wait for the command to complete
-      await waitUntilStderr(command, "Not logged in", 3000);
-
-      // Give it a moment to exit
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      // The command should have output about not being logged in
-      expect(command.stderr()).toContain("Not logged in");
+      // Wait for process to exit and check exit code
+      const exitCode = await waitForExit(command, 5000);
+      expect(exitCode).toBe(1);
     });
   });
 
@@ -53,6 +44,10 @@ describe("Whoami Command Tests", () => {
 
       const output = command.stdout();
       expect(output).toContain("service_account");
+
+      // Wait for process to exit and check exit code
+      const exitCode = await waitForExit(command, 5000);
+      expect(exitCode).toBe(0);
     });
   });
 });

@@ -13,16 +13,29 @@ class BackgroundCommand {
   private stdoutData = "";
   private stderrData = "";
   private isPty: boolean;
+  private exitCode: number | null = null;
+  private exitPromise: Promise<number>;
+  private exitResolve!: (code: number) => void;
 
   constructor(process: ChildProcess | pty.IPty, isPty = false) {
     this.process = process;
     this.isPty = isPty;
+
+    // Create promise that resolves when process exits
+    this.exitPromise = new Promise((resolve) => {
+      this.exitResolve = resolve;
+    });
 
     if (isPty) {
       // PTY mode: all output comes through onData
       const ptyProcess = process as pty.IPty;
       ptyProcess.onData((data) => {
         this.stdoutData += data;
+      });
+
+      ptyProcess.onExit(({ exitCode }) => {
+        this.exitCode = exitCode;
+        this.exitResolve(exitCode);
       });
     } else {
       // Pipe mode: separate stdout and stderr
@@ -33,6 +46,11 @@ class BackgroundCommand {
 
       childProcess.stderr?.on("data", (data) => {
         this.stderrData += data.toString();
+      });
+
+      childProcess.on("exit", (code) => {
+        this.exitCode = code ?? 0;
+        this.exitResolve(code ?? 0);
       });
     }
   }
@@ -113,6 +131,29 @@ class BackgroundCommand {
    */
   writeSpace(): void {
     this.write(" ");
+  }
+
+  /**
+   * Get the exit code if the process has exited, otherwise null
+   */
+  getExitCode(): number | null {
+    return this.exitCode;
+  }
+
+  /**
+   * Wait for the process to exit and return the exit code
+   * For internal use only - prefer using waitForExit() from CommandTestHelpers in tests
+   */
+  waitForExit(timeout?: number): Promise<number> {
+    if (timeout) {
+      return Promise.race([
+        this.exitPromise,
+        new Promise<number>((_, reject) =>
+          setTimeout(() => reject(new Error(`Process did not exit within ${timeout}ms`)), timeout)
+        ),
+      ]);
+    }
+    return this.exitPromise;
   }
 
   kill(): void {
