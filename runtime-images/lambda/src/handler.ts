@@ -148,11 +148,18 @@ export const handler = async (event: any, context: any) => {
             }
         } else if (event.triggerType === 'webhook') {
             // Handle webhook trigger - match by path and method
+            // Backend sends paths with /webhook/ prefix, but user code may not include it
+            const normalizedEventPath = event.path.replace(/^\/webhook/, '') || '/';
+
             const webhookTriggers = triggers.filter(t => {
                 if (t.type !== 'webhook') return false;
                 const triggerPath = t.path || '/webhook';
                 const triggerMethod = t.method || 'POST';
-                return event.path === triggerPath && event.method === triggerMethod;
+
+                // Normalize trigger path for comparison
+                const normalizedTriggerPath = triggerPath.replace(/^\/webhook/, '') || '/';
+
+                return normalizedEventPath === normalizedTriggerPath && event.method === triggerMethod;
             });
 
             for (const trigger of webhookTriggers) {
