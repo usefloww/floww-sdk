@@ -31,6 +31,7 @@ import { selectOrCreateWorkflow } from "../utils/promptUtils";
 import { resolveWorkflow, fetchProviderConfigs } from "../runtime/workflow";
 import { executeUserCode } from "../runtime/userCode";
 import { validateProviders } from "../runtime/providers";
+import { getValidAuth } from "../auth/tokenUtils";
 
 const defaultDockerfileContent = `
 FROM ghcr.io/usefloww/lambda-runtime:latest
@@ -189,6 +190,17 @@ function convertTriggersToMetadata(triggers: any[]): any[] {
  */
 export async function deployCommand() {
   const projectDir = process.cwd();
+
+  // ============================================================================
+  // AUTHENTICATION CHECK
+  // ============================================================================
+
+  // Check if user is authenticated
+  const auth = await getValidAuth();
+  if (!auth) {
+    logger.error("Not logged in. Run 'floww login' first.");
+    process.exit(1);
+  }
 
   // ============================================================================
   // PREREQUISITES: Initialize project and resolve workflow

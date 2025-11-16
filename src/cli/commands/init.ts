@@ -10,6 +10,7 @@ import {
 import { fetchNamespaces } from "../api/apiMethods";
 import { logger } from "../utils/logger";
 import { setupWorkflow } from "../utils/promptUtils";
+import { getValidAuth } from "../auth/tokenUtils";
 
 interface InitOptions {
   force?: boolean;
@@ -106,15 +107,28 @@ export async function initCommand(
       }
     }
 
-    // Select or create workflow using shared utility
-    const { workflowId } = await setupWorkflow({
-      suggestedName: name,
-      allowCreate: true,
-    });
+    // Check if user is authenticated
+    const auth = await getValidAuth();
+    let workflowId: string | undefined;
+
+    if (auth) {
+      // User is authenticated - create workflow via API
+      const result = await setupWorkflow({
+        suggestedName: name,
+        allowCreate: true,
+      });
+      workflowId = result.workflowId;
+    } else {
+      // User is not authenticated - skip API calls
+      if (!options.silent) {
+        logger.warn("Not logged in - creating local project only");
+      }
+      workflowId = undefined;
+    }
 
     // Create config
     const config = {
-      workflowId,
+      ...(workflowId && { workflowId }),
       name,
       ...(options.description && { description: options.description }),
       version: "1.0.0",
@@ -127,7 +141,11 @@ export async function initCommand(
     if (!options.silent) {
       logger.success("Created floww.yaml");
       logger.plain(`   Workflow: ${name}`);
-      logger.plain(`   Workflow ID: ${workflowId}`);
+      if (workflowId) {
+        logger.plain(`   Workflow ID: ${workflowId}`);
+      } else {
+        logger.plain("   Workflow ID: (not set - login required)");
+      }
     }
 
     if (initMode === "new" && !options.silent) {
@@ -157,23 +175,42 @@ export async function initCommand(
         logger.plain("  - Dockerfile");
         logger.plain("  - .dockerignore");
         logger.plain("  - .gitignore");
-        logger.plain("\nNext steps:");
-        logger.plain(`  1. cd ${dirName}`);
-        logger.plain("  2. npm install");
-        logger.plain("  3. Edit your workflow in main.ts");
-        logger.plain("  4. Run: floww dev main.ts");
-        logger.plain("  5. Deploy: floww deploy");
-        logger.plain("  6. Start building! 🚀\n");
+
+        if (!workflowId) {
+          logger.plain("\nNext steps:");
+          logger.plain(`  1. cd ${dirName}`);
+          logger.plain("  2. npm install");
+          logger.plain("  3. Edit your workflow in main.ts");
+          logger.plain("  4. Login: floww login");
+          logger.plain("  5. Deploy: floww deploy");
+          logger.plain("  6. Start building! 🚀\n");
+        } else {
+          logger.plain("\nNext steps:");
+          logger.plain(`  1. cd ${dirName}`);
+          logger.plain("  2. npm install");
+          logger.plain("  3. Edit your workflow in main.ts");
+          logger.plain("  4. Run: floww dev main.ts");
+          logger.plain("  5. Deploy: floww deploy");
+          logger.plain("  6. Start building! 🚀\n");
+        }
       } else {
-        logger.plain("\nNext steps:");
-        logger.plain("  1. Edit your workflow in main.ts");
-        logger.plain("  2. Run: floww dev main.ts");
-        logger.plain("  3. Deploy: floww deploy");
-        logger.plain("  4. Start building! 🚀\n");
+        if (!workflowId) {
+          logger.plain("\nNext steps:");
+          logger.plain("  1. Edit your workflow in main.ts");
+          logger.plain("  2. Login: floww login");
+          logger.plain("  3. Deploy: floww deploy");
+          logger.plain("  4. Start building! 🚀\n");
+        } else {
+          logger.plain("\nNext steps:");
+          logger.plain("  1. Edit your workflow in main.ts");
+          logger.plain("  2. Run: floww dev main.ts");
+          logger.plain("  3. Deploy: floww deploy");
+          logger.plain("  4. Start building! 🚀\n");
+        }
       }
     }
 
-    return workflowId;
+    return workflowId || null;
   } catch (error) {
     logger.error("Failed to initialize project", error);
     if (options.silent) {

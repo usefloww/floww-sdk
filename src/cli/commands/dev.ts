@@ -2,6 +2,7 @@ import chokidar from "chokidar";
 import { DevModeOrchestrator } from "../runtime/DevModeOrchestrator";
 import { loadProjectConfig, hasProjectConfig } from "../config/projectConfig";
 import { logger } from "../utils/logger";
+import { getValidAuth } from "../auth/tokenUtils";
 
 interface DevOptions {
   port: string;
@@ -69,6 +70,24 @@ export async function devCommand(
     entrypoint = config.entrypoint || "main.ts";
   } else {
     entrypoint = "main.ts";
+  }
+
+  // Validate authentication and workflow configuration
+  const auth = await getValidAuth();
+  if (!auth) {
+    logger.error("Not logged in. Run 'floww login' first.");
+    process.exit(1);
+  }
+
+  if (hasProjectConfig()) {
+    const config = loadProjectConfig();
+    if (!config.workflowId) {
+      logger.error("No workflow configured. Run 'floww deploy' to set up your workflow.");
+      process.exit(1);
+    }
+  } else {
+    logger.error("No floww.yaml found. Run 'floww init' to create one.");
+    process.exit(1);
   }
 
   logger.info(`Development Mode${debugMode ? " (Debug Enabled)" : ""}`);
