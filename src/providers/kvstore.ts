@@ -102,7 +102,6 @@ class KVClient {
 
     const headers: Record<string, string> = {
       Authorization: `Bearer ${authToken || ""}`,
-      "X-KV-Provider": this.providerCredential, // Include provider credential in header
     };
 
     if (body !== undefined) {
@@ -129,20 +128,20 @@ class KVClient {
 
   // Table operations
   async listTables(): Promise<string[]> {
-    const result = await this.request<TableListResponse>("GET", "/kv");
+    const result = await this.request<TableListResponse>("GET", `/kv/${this.providerCredential}`);
     return result.tables;
   }
 
   // Key operations
   async listKeys(table: string): Promise<string[]> {
-    const result = await this.request<KeyListResponse>("GET", `/kv/${table}`);
+    const result = await this.request<KeyListResponse>("GET", `/kv/${this.providerCredential}/${table}`);
     return result.keys;
   }
 
   async listItems<T = any>(table: string): Promise<KVItem<T>[]> {
     const result = await this.request<KeysWithValuesResponse<T>>(
       "GET",
-      `/kv/${table}?include_values=true`
+      `/kv/${this.providerCredential}/${table}?include_values=true`
     );
     return result.items;
   }
@@ -150,7 +149,7 @@ class KVClient {
   // Value operations
   async get<T = any>(table: string, key: string): Promise<T | undefined> {
     try {
-      const result = await this.request<KVItem<T>>("GET", `/kv/${table}/${key}`);
+      const result = await this.request<KVItem<T>>("GET", `/kv/${this.providerCredential}/${table}/${key}`);
       return result.value;
     } catch (error) {
       // Return undefined if key doesn't exist (404)
@@ -163,16 +162,16 @@ class KVClient {
   }
 
   async set<T = any>(table: string, key: string, value: T): Promise<void> {
-    await this.request("PUT", `/kv/${table}/${key}`, { value });
+    await this.request("PUT", `/kv/${this.providerCredential}/${table}/${key}`, { value });
   }
 
   async delete(table: string, key: string): Promise<void> {
-    await this.request("DELETE", `/kv/${table}/${key}`);
+    await this.request("DELETE", `/kv/${this.providerCredential}/${table}/${key}`);
   }
 
   // Permission operations
   async listPermissions(table: string): Promise<Permission[]> {
-    return this.request<Permission[]>("GET", `/kv/permissions/${table}`);
+    return this.request<Permission[]>("GET", `/kv/${this.providerCredential}/permissions/${table}`);
   }
 
   async grantPermission(
@@ -185,11 +184,11 @@ class KVClient {
       can_read: options.read ?? true,
       can_write: options.write ?? false,
     };
-    return this.request<Permission>("POST", `/kv/permissions/${table}`, request);
+    return this.request<Permission>("POST", `/kv/${this.providerCredential}/permissions/${table}`, request);
   }
 
   async revokePermission(table: string, workflowId: string): Promise<void> {
-    await this.request("DELETE", `/kv/permissions/${table}/${workflowId}`);
+    await this.request("DELETE", `/kv/${this.providerCredential}/permissions/${table}/${workflowId}`);
   }
 }
 
