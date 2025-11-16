@@ -1,7 +1,7 @@
 <p align="center">
   <a href="https://usefloww.dev">
     <picture>
-      <img alt="Floww logo" src="./.github/assets/floww_logo_full.png">
+      <img alt="Floww logo" src="./.github/assets/floww_logo_full.png" width="300">
     </picture>
   </a>
 </p>
