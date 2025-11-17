@@ -27,6 +27,7 @@ builtin.triggers.onWebhook<CustomBody>({
 });
 `;
 
+// V2 payload format: type-agnostic with provider-aware matching
 const payloadObj = {
     userCode: {
         files: {
@@ -34,16 +35,30 @@ const payloadObj = {
         },
         entrypoint: 'main.ts'
     },
-    triggerType: 'webhook',
-    path: '/test',
-    method: 'POST',
-    headers: {
-        'content-type': 'application/json'
+    // Trigger identity - used for matching which trigger to execute
+    trigger: {
+        provider: {
+            type: 'builtin',
+            alias: 'default'
+        },
+        trigger_type: 'onWebhook',
+        input: {
+            path: '/custom',  // Must match the trigger path in user code
+            method: 'POST'
+        }
     },
-    body: {
-        test: 'data'
-    },
-    query: {}
+    // Event data - passed to the trigger handler
+    data: {
+        method: 'POST',
+        path: '/custom',
+        headers: {
+            'content-type': 'application/json'
+        },
+        body: {
+            message: 'Hello from test invocation!'
+        },
+        query: {}
+    }
 };
 
 (async () => {

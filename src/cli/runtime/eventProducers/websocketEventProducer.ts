@@ -61,12 +61,10 @@ export class WebSocketEventProducer implements EventProducer {
       });
 
       this.centrifuge.on("connected", () => {
-        console.log("Connected to WebSocket");
         this.subscribeToChannel();
       });
 
       this.centrifuge.on("disconnected", () => {
-        console.log("Disconnected from WebSocket");
         this.isConnected = false;
       });
 

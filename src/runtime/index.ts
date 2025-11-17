@@ -98,6 +98,10 @@ export async function reportExecutionStatus(
 
 /**
  * Trigger invocation event payload
+ *
+ * Uses a type-agnostic design with clear separation between:
+ * - Trigger identity (provider, trigger_type, input) - used for matching
+ * - Event data (data) - passed to trigger handlers
  */
 export interface InvokeTriggerEvent {
   // User code to execute
@@ -107,29 +111,28 @@ export interface InvokeTriggerEvent {
   };
 
   // Execution ID and auth token
+  // used for reporting execution status to the backend
   execution_id?: string;
   auth_token?: string;
 
+  // Trigger input details
+  // used for matching which trigger to execute
+  trigger: {
+    provider: {
+      type: string;
+      alias: string;
+    };
+    trigger_type: string;
+    input: any;
+  };
+
   // Trigger event details
-  triggerType: "webhook" | "cron" | "realtime";
+  // used for passing the event data to the trigger handler
+  data: any;
 
-  // Webhook-specific fields
-  path?: string;
-  method?: string;
-  headers?: Record<string, string>;
-  body?: any;
-  query?: Record<string, string>;
-
-  // Cron-specific fields
-  expression?: string;
-  scheduledTime?: string;
-
-  // Realtime-specific fields
-  channel?: string;
-  messageType?: string;
-  data?: any;
-
-  // Provider configuration
+  // Provider configurations
+  // Decrypted provider configs injected into user code execution context
+  // Format: "providerType:alias" -> config object
   providerConfigs?: Record<string, any>;
 }
 
@@ -152,7 +155,7 @@ export interface InvokeTriggerResult {
  * This function:
  * 1. Wraps user code with provider config injection
  * 2. Executes the wrapped project to extract registered triggers
- * 3. Routes the event to matching trigger handlers
+ * 3. Routes the event to matching trigger handlers using provider-aware matching
  * 4. Reports execution status to backend if credentials provided
  * 5. Returns execution results
  *
@@ -185,6 +188,7 @@ export async function invokeTrigger(
     console.log(`📂 Loading entrypoint: ${entrypoint}`);
 
     // Extract provider configs from event (if provided)
+    // Backend decrypts and sends provider credentials for this namespace
     const providerConfigs = event.providerConfigs || {};
 
     // Create wrapped project with auto-registration support
@@ -206,92 +210,43 @@ export async function invokeTrigger(
 
     console.log(`✅ Loaded ${triggers.length} trigger(s)`);
 
-    // Route the event to appropriate triggers based on event type
-    // Match ALL triggers with matching properties (handles duplicates correctly)
-    let executedCount = 0;
+    // Provider-aware trigger matching
+    // Match triggers by provider metadata (type, alias, trigger_type, input)
+    const matchingTriggers = triggers.filter((t: any) => {
+      // Skip triggers without provider metadata
+      if (!t._providerMeta) {
+        console.log(`⚠️ Trigger without provider metadata, skipping`);
+        return false;
+      }
 
-    if (event.triggerType === "cron") {
-      // Handle cron trigger - match by expression
-      const cronTriggers = triggers.filter(
-        (t: any) => t.type === "cron" && t.expression === event.expression
+      // Match on provider type, alias, trigger type, and input parameters
+      const typeMatch = t._providerMeta.type === event.trigger.provider.type;
+      const aliasMatch = t._providerMeta.alias === event.trigger.provider.alias;
+      const triggerTypeMatch = t._providerMeta.triggerType === event.trigger.trigger_type;
+
+      // Deep equality check for input parameters
+      const inputMatch = JSON.stringify(t._providerMeta.input) === JSON.stringify(event.trigger.input);
+
+      return typeMatch && aliasMatch && triggerTypeMatch && inputMatch;
+    });
+
+    if (matchingTriggers.length === 0) {
+      console.log(
+        `⚠️ No matching triggers found for provider: ${event.trigger.provider.type}:${event.trigger.provider.alias}, ` +
+        `trigger_type: ${event.trigger.trigger_type}, input: ${JSON.stringify(event.trigger.input)}`
       );
-      for (const trigger of cronTriggers) {
-        console.log(`⏰ Executing cron trigger: ${trigger.expression}`);
-        await trigger.handler(
-          {},
-          {
-            scheduledTime: event.scheduledTime || new Date().toISOString(),
-            expression: event.expression,
-          }
-        );
-        executedCount++;
-      }
-    } else if (event.triggerType === "webhook") {
-      // Handle webhook trigger - match by path and method
-      // Backend sends paths with /webhook/ prefix, but user code may not include it
-      const normalizedEventPath = event.path?.replace(/^\/webhook/, "") || "/";
-
-      const webhookTriggers = triggers.filter((t: any) => {
-        if (t.type !== "webhook") return false;
-        const triggerPath = t.path || "/webhook";
-        const triggerMethod = t.method || "POST";
-
-        // Normalize trigger path for comparison
-        const normalizedTriggerPath =
-          triggerPath.replace(/^\/webhook/, "") || "/";
-
-        return (
-          normalizedEventPath === normalizedTriggerPath &&
-          event.method === triggerMethod
-        );
-      });
-
-      for (const trigger of webhookTriggers) {
-        const triggerPath = trigger.path || "/webhook";
-        const triggerMethod = trigger.method || "POST";
-        console.log(
-          `🌐 Executing webhook trigger: ${triggerMethod} ${triggerPath}`
-        );
-        await trigger.handler(
-          {},
-          {
-            method: event.method,
-            path: event.path,
-            headers: event.headers || {},
-            body: event.body,
-            query: event.query || {},
-          }
-        );
-        executedCount++;
-      }
-    } else if (event.triggerType === "realtime") {
-      // Handle realtime trigger - match by channel
-      const realtimeTriggers = triggers.filter((t: any) => {
-        if (t.type !== "realtime") return false;
-        return (
-          t.channel === event.channel &&
-          (!t.messageType || t.messageType === event.messageType)
-        );
-      });
-
-      for (const trigger of realtimeTriggers) {
-        console.log(`📡 Executing realtime trigger: ${trigger.channel}`);
-        await trigger.handler(
-          {},
-          {
-            channel: event.channel,
-            type: event.messageType,
-            data: event.data,
-          }
-        );
-        executedCount++;
-      }
-    } else {
-      console.log(`⚠️ Unknown trigger type: ${event.triggerType}`);
     }
 
-    if (executedCount === 0) {
-      console.log(`⚠️ No matching triggers found for ${event.triggerType}`);
+    // Execute all matching triggers
+    let executedCount = 0;
+    for (const trigger of matchingTriggers) {
+      console.log(
+        `🎯 Executing trigger: ${event.trigger.provider.type}:${event.trigger.provider.alias}.${event.trigger.trigger_type}`
+      );
+
+      // Pass event data directly to handler
+      await trigger.handler({}, event.data);
+      executedCount++;
     }
 
     // Report successful execution to backend if credentials provided

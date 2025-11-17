@@ -2,7 +2,7 @@
 // Provides /health and /execute endpoints for container-based workflow execution
 
 import Fastify from "fastify";
-import { invokeTrigger } from "floww/runtime";
+import { invokeTrigger, InvokeTriggerEvent } from "floww/runtime";
 
 const fastify = Fastify({
   logger: true,
@@ -15,7 +15,7 @@ fastify.get("/health", async (request, reply) => {
 
 // Main execution endpoint
 fastify.post("/execute", async (request, reply) => {
-  const event = request.body as any;
+  const event = request.body as InvokeTriggerEvent;
 
   // Invoke the trigger (reporting handled internally)
   const result = await invokeTrigger(event);

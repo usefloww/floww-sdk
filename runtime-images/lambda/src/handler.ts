@@ -1,9 +1,9 @@
 // Universal Lambda handler for Floww workflows
 // Assumes floww is available in the runtime
 
-import { invokeTrigger } from "floww/runtime";
+import { invokeTrigger, InvokeTriggerEvent } from "floww/runtime";
 
-export const handler = async (event: any, context: any) => {
+export const handler = async (event: InvokeTriggerEvent, context: any) => {
   // Invoke the trigger (reporting handled internally)
   const result = await invokeTrigger(event);
 
