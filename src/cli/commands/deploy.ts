@@ -4,6 +4,7 @@ import {
   loadProjectConfig,
   hasProjectConfig,
   updateProjectConfig,
+  detectProjectDirectory,
   ProjectConfig,
 } from "../config/projectConfig";
 import {
@@ -189,8 +190,6 @@ function convertTriggersToMetadata(triggers: any[]): any[] {
  * 7. Deploy code and trigger metadata
  */
 export async function deployCommand() {
-  const projectDir = process.cwd();
-
   // ============================================================================
   // AUTHENTICATION CHECK
   // ============================================================================
@@ -203,11 +202,14 @@ export async function deployCommand() {
   }
 
   // ============================================================================
-  // PREREQUISITES: Initialize project and resolve workflow
+  // PREREQUISITES: Detect project directory and initialize
   // ============================================================================
 
+  // Detect project directory (searches upward for floww.yaml)
+  const projectDir = detectProjectDirectory();
+
   // Auto-initialize if no config exists
-  if (!hasProjectConfig()) {
+  if (!hasProjectConfig(projectDir)) {
     console.log("🔧 Setting up project configuration...");
 
     try {
@@ -223,7 +225,7 @@ export async function deployCommand() {
   }
 
   // Load project config
-  let projectConfig = loadProjectConfig();
+  let projectConfig = loadProjectConfig(projectDir);
 
   // Handle workflow selection if workflowId is missing (fallback)
   if (!projectConfig.workflowId) {
@@ -233,7 +235,7 @@ export async function deployCommand() {
       const selectedWorkflowId = await selectWorkflow();
 
       // Update floww.yaml with selected workflow
-      projectConfig = updateProjectConfig({ workflowId: selectedWorkflowId });
+      projectConfig = updateProjectConfig({ workflowId: selectedWorkflowId }, projectDir);
       logger.debugInfo("Workflow saved to floww.yaml");
     } catch (error) {
       logger.error(

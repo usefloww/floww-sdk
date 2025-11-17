@@ -28,6 +28,61 @@ export function getProjectConfigPath(dir: string = process.cwd()): string {
 }
 
 /**
+ * Find the project directory by searching upward from a given path for floww.yaml
+ * @param startPath - The path to start searching from (file or directory)
+ * @returns The directory containing floww.yaml, or null if not found
+ */
+export function findProjectDirectory(startPath: string): string | null {
+  let currentDir = fs.statSync(startPath).isDirectory()
+    ? path.resolve(startPath)
+    : path.resolve(path.dirname(startPath));
+
+  const root = path.parse(currentDir).root;
+
+  while (currentDir !== root) {
+    if (hasProjectConfig(currentDir)) {
+      return currentDir;
+    }
+    currentDir = path.dirname(currentDir);
+  }
+
+  // Check root directory
+  if (hasProjectConfig(root)) {
+    return root;
+  }
+
+  return null;
+}
+
+/**
+ * Detect the project directory from an entrypoint file path or current directory
+ * @param entrypointPath - Optional path to the entrypoint file
+ * @returns The detected project directory, or process.cwd() if not found
+ */
+export function detectProjectDirectory(entrypointPath?: string): string {
+  if (entrypointPath) {
+    const absolutePath = path.isAbsolute(entrypointPath)
+      ? entrypointPath
+      : path.resolve(process.cwd(), entrypointPath);
+
+    if (fs.existsSync(absolutePath)) {
+      const projectDir = findProjectDirectory(absolutePath);
+      if (projectDir) {
+        return projectDir;
+      }
+    }
+  }
+
+  // Fallback: check if current directory has floww.yaml
+  if (hasProjectConfig(process.cwd())) {
+    return process.cwd();
+  }
+
+  // Last resort: use current working directory
+  return process.cwd();
+}
+
+/**
  * Check if a project config file exists
  */
 export function hasProjectConfig(dir: string = process.cwd()): boolean {

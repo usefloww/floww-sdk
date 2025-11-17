@@ -14,6 +14,7 @@ import { selectOrCreateWorkflow } from "../utils/promptUtils";
 
 export interface DevModeOptions {
   entrypoint: string;
+  projectDir?: string;
   port: number;
   host: string;
   debugMode?: boolean;
@@ -67,7 +68,7 @@ export class DevModeOrchestrator {
    */
   async start(): Promise<void> {
     // Load project configuration
-    let projectConfig = loadProjectConfig();
+    let projectConfig = loadProjectConfig(this.options.projectDir);
 
     // Step 1: Check workflow exists
     try {
@@ -93,7 +94,7 @@ export class DevModeOrchestrator {
             });
 
           // Update project config with the selected workflow
-          projectConfig = updateProjectConfig({ workflowId });
+          projectConfig = updateProjectConfig({ workflowId }, this.options.projectDir);
 
           // Retry resolving workflow with updated config
           this.workflow = await logger.debugTask(

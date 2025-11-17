@@ -1,6 +1,6 @@
 import chokidar from "chokidar";
 import { DevModeOrchestrator } from "../runtime/DevModeOrchestrator";
-import { loadProjectConfig, hasProjectConfig } from "../config/projectConfig";
+import { loadProjectConfig, hasProjectConfig, detectProjectDirectory } from "../config/projectConfig";
 import { logger } from "../utils/logger";
 import { getValidAuth } from "../auth/tokenUtils";
 
@@ -65,11 +65,17 @@ export async function devCommand(
   let entrypoint: string;
   if (file) {
     entrypoint = file;
-  } else if (hasProjectConfig()) {
-    const config = loadProjectConfig();
-    entrypoint = config.entrypoint || "main.ts";
   } else {
     entrypoint = "main.ts";
+  }
+
+  // Detect project directory based on entrypoint
+  const projectDir = detectProjectDirectory(entrypoint);
+
+  // Update entrypoint from config if not explicitly provided
+  if (!file && hasProjectConfig(projectDir)) {
+    const config = loadProjectConfig(projectDir);
+    entrypoint = config.entrypoint || "main.ts";
   }
 
   // Validate authentication and workflow configuration
@@ -79,8 +85,8 @@ export async function devCommand(
     process.exit(1);
   }
 
-  if (hasProjectConfig()) {
-    const config = loadProjectConfig();
+  if (hasProjectConfig(projectDir)) {
+    const config = loadProjectConfig(projectDir);
     if (!config.workflowId) {
       logger.error("No workflow configured. Run 'floww deploy' to set up your workflow.");
       process.exit(1);
@@ -102,6 +108,7 @@ export async function devCommand(
   // Create orchestrator
   const orchestrator = new DevModeOrchestrator({
     entrypoint,
+    projectDir,
     port,
     host,
     debugMode,
