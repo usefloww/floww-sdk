@@ -110,10 +110,13 @@ export interface InvokeTriggerEvent {
     entrypoint: string;
   };
 
+  // backend url
+  backendUrl?: string;
+
   // Execution ID and auth token
   // used for reporting execution status to the backend
-  execution_id?: string;
-  auth_token?: string;
+  executionId?: string;
+  authToken?: string;
 
   // Trigger input details
   // used for matching which trigger to execute
@@ -122,7 +125,7 @@ export interface InvokeTriggerEvent {
       type: string;
       alias: string;
     };
-    trigger_type: string;
+    triggerType: string;
     input: any;
   };
 
@@ -165,8 +168,6 @@ export interface InvokeTriggerResult {
 export async function invokeTrigger(
   event: InvokeTriggerEvent
 ): Promise<InvokeTriggerResult> {
-  const backendUrl = process.env.BACKEND_URL || "http://localhost:8000";
-
   try {
     console.log("🚀 Floww Runtime - Processing event");
 
@@ -223,7 +224,7 @@ export async function invokeTrigger(
       const typeMatch = t._providerMeta.type === event.trigger.provider.type;
       const aliasMatch = t._providerMeta.alias === event.trigger.provider.alias;
       const triggerTypeMatch =
-        t._providerMeta.triggerType === event.trigger.trigger_type;
+        t._providerMeta.triggerType === event.trigger.triggerType;
 
       // Deep equality check for input parameters
       const inputMatch =
@@ -236,7 +237,7 @@ export async function invokeTrigger(
     if (matchingTriggers.length === 0) {
       console.log(
         `⚠️ No matching triggers found for provider: ${event.trigger.provider.type}:${event.trigger.provider.alias}, ` +
-          `trigger_type: ${event.trigger.trigger_type}, input: ${JSON.stringify(
+          `trigger_type: ${event.trigger.triggerType}, input: ${JSON.stringify(
             event.trigger.input
           )}`
       );
@@ -246,7 +247,7 @@ export async function invokeTrigger(
     let executedCount = 0;
     for (const trigger of matchingTriggers) {
       console.log(
-        `🎯 Executing trigger: ${event.trigger.provider.type}:${event.trigger.provider.alias}.${event.trigger.trigger_type}`
+        `🎯 Executing trigger: ${event.trigger.provider.type}:${event.trigger.provider.alias}.${event.trigger.triggerType}`
       );
 
       // Pass event data directly to handler
@@ -255,11 +256,11 @@ export async function invokeTrigger(
     }
 
     // Report successful execution to backend if credentials provided
-    if (backendUrl && event.execution_id && event.auth_token) {
+    if (event.backendUrl && event.executionId && event.authToken) {
       await reportExecutionStatus(
-        backendUrl,
-        event.execution_id,
-        event.auth_token
+        event.backendUrl,
+        event.executionId,
+        event.authToken
       );
     }
 
@@ -277,11 +278,11 @@ export async function invokeTrigger(
     };
 
     // Report failed execution to backend if credentials provided
-    if (backendUrl && event.execution_id && event.auth_token) {
+    if (event.backendUrl && event.executionId && event.authToken) {
       await reportExecutionStatus(
-        backendUrl,
-        event.execution_id,
-        event.auth_token,
+        event.backendUrl,
+        event.executionId,
+        event.authToken,
         errorDetails
       );
     }
