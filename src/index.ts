@@ -10,6 +10,7 @@ export * from "./providers/slack";
 export * from "./providers/todoist";
 export * from "./providers/kvstore";
 export * from "./providers/ai";
+export * from "./providers/github";
 
 // Code execution exports
 export * from "./codeExecution";
