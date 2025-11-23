@@ -10,6 +10,11 @@ export class WebSocketEventProducer implements EventProducer {
   private isConnected = false;
   private currentStream: EventStream | null = null;
   private currentTriggers: Trigger[] = [];
+  private realtimeSubscription: ReturnType<
+    Centrifuge["newSubscription"]
+  > | null = null;
+  private devSubscription: ReturnType<Centrifuge["newSubscription"]> | null =
+    null;
 
   constructor(private workflowId?: string) {}
 
@@ -42,6 +47,19 @@ export class WebSocketEventProducer implements EventProducer {
         return;
       }
 
+      // Clean up existing subscriptions if we're recreating the connection
+      if (this.centrifuge) {
+        if (this.realtimeSubscription) {
+          this.realtimeSubscription.unsubscribe();
+          this.realtimeSubscription = null;
+        }
+        if (this.devSubscription) {
+          this.devSubscription.unsubscribe();
+          this.devSubscription = null;
+        }
+        this.centrifuge.disconnect();
+      }
+
       // Get WebSocket URL from profile or fallback to config
       const websocketUrl = getWebSocketUrl();
 
@@ -58,6 +76,7 @@ export class WebSocketEventProducer implements EventProducer {
 
       this.centrifuge.on("disconnected", () => {
         this.isConnected = false;
+        // Don't clear subscriptions on disconnect - they'll be reused on reconnect
       });
 
       this.centrifuge.on("error", (ctx) => {
@@ -77,95 +96,117 @@ export class WebSocketEventProducer implements EventProducer {
 
     // Subscribe to realtime events channel
     const realtimeChannel = "workflow:events";
-    const realtimeSubscription =
-      this.centrifuge.newSubscription(realtimeChannel);
 
-    realtimeSubscription.on("publication", (ctx) => {
-      const realtimeEvent: RealtimeEvent = {
-        type: ctx.data.type || "default",
-        workflow_id: ctx.data.workflow_id || "",
-        payload: ctx.data.payload || ctx.data,
-        timestamp: new Date().toISOString(),
-        channel: ctx.data.channel || realtimeChannel,
-        __context: {
-          auth_token: ctx.data.auth_token, // Pass through workflow auth token from backend
-          backend_url: ctx.data.backend_url, // Pass through backend URL from backend
-        },
-      };
+    // Check if subscription already exists, reuse it if it does
+    if (!this.realtimeSubscription) {
+      this.realtimeSubscription =
+        this.centrifuge.newSubscription(realtimeChannel);
 
-      // Just emit the event - let the engine route it to the right triggers
-      this.currentStream!.emit("data", {
-        type: "realtime",
-        trigger: null,
-        data: realtimeEvent,
+      this.realtimeSubscription.on("publication", (ctx) => {
+        const realtimeEvent: RealtimeEvent = {
+          type: ctx.data.type || "default",
+          workflow_id: ctx.data.workflow_id || "",
+          payload: ctx.data.payload || ctx.data,
+          timestamp: new Date().toISOString(),
+          channel: ctx.data.channel || realtimeChannel,
+          __context: {
+            auth_token: ctx.data.auth_token, // Pass through workflow auth token from backend
+            backend_url: ctx.data.backend_url, // Pass through backend URL from backend
+          },
+        };
+
+        // Just emit the event - let the engine route it to the right triggers
+        this.currentStream!.emit("data", {
+          type: "realtime",
+          trigger: null,
+          data: realtimeEvent,
+        });
       });
-    });
 
-    realtimeSubscription.on("subscribed", () => {
-      console.log(`📡 Subscribed to realtime channel: ${realtimeChannel}`);
-    });
+      this.realtimeSubscription.on("subscribed", () => {
+        console.log(`📡 Subscribed to realtime channel: ${realtimeChannel}`);
+      });
 
-    realtimeSubscription.on("error", (ctx) => {
-      console.log("Subscription error:", ctx.error);
-    });
+      this.realtimeSubscription.on("error", (ctx) => {
+        console.log("Subscription error:", ctx.error);
+      });
+    }
 
-    realtimeSubscription.subscribe();
+    // Subscribe if not already subscribed (handles reconnection case)
+    if (this.realtimeSubscription.state !== "subscribed") {
+      this.realtimeSubscription.subscribe();
+    }
 
     // Subscribe to dev webhook channel if workflowId is provided
     if (this.workflowId) {
       const devChannel = `workflow:${this.workflowId}`;
-      const devSubscription = this.centrifuge.newSubscription(devChannel);
 
-      devSubscription.on("publication", (ctx) => {
-        if (ctx.data.type === "webhook") {
-          const matchingTriggers = getMatchingTriggers(this.currentTriggers, {
-            type: ctx.data.trigger_metadata.provider_type,
-            alias: ctx.data.trigger_metadata.provider_alias,
-            triggerType: ctx.data.trigger_metadata.trigger_type,
-            input: ctx.data.trigger_metadata.input,
-          });
+      // Check if subscription already exists, reuse it if it does
+      if (!this.devSubscription) {
+        this.devSubscription = this.centrifuge.newSubscription(devChannel);
 
-          if (matchingTriggers.length === 0) {
-            console.warn(
-              `Received webhook event but no matching triggers found`,
-              ctx.data.trigger_metadata
-            );
-            return;
-          } else {
-            for (const trigger of matchingTriggers) {
-              this.currentStream!.emit("data", {
-                type: "webhook",
-                trigger: trigger,
-                data: {
-                  body: ctx.data.body,
-                  headers: ctx.data.headers,
-                  query: ctx.data.query,
-                  method: ctx.data.method,
-                  path: ctx.data.path,
-                  __context: {
-                    auth_token: ctx.data.auth_token, // Pass through workflow auth token from backend
-                    backend_url: ctx.data.backend_url, // Pass through backend URL from backend
+        this.devSubscription.on("publication", (ctx) => {
+          if (ctx.data.type === "webhook") {
+            const matchingTriggers = getMatchingTriggers(this.currentTriggers, {
+              type: ctx.data.trigger_metadata.provider_type,
+              alias: ctx.data.trigger_metadata.provider_alias,
+              triggerType: ctx.data.trigger_metadata.trigger_type,
+              input: ctx.data.trigger_metadata.input,
+            });
+
+            if (matchingTriggers.length === 0) {
+              console.warn(
+                `Received webhook event but no matching triggers found`,
+                ctx.data.trigger_metadata
+              );
+              return;
+            } else {
+              for (const trigger of matchingTriggers) {
+                this.currentStream!.emit("data", {
+                  type: "webhook",
+                  trigger: trigger,
+                  data: {
+                    body: ctx.data.body,
+                    headers: ctx.data.headers,
+                    query: ctx.data.query,
+                    method: ctx.data.method,
+                    path: ctx.data.path,
+                    __context: {
+                      auth_token: ctx.data.auth_token, // Pass through workflow auth token from backend
+                      backend_url: ctx.data.backend_url, // Pass through backend URL from backend
+                    },
                   },
-                },
-              });
+                });
+              }
             }
           }
-        }
-      });
+        });
 
-      devSubscription.on("subscribed", () => {
-        console.log(`📡 Subscribed to dev webhook channel: ${devChannel}`);
-      });
+        this.devSubscription.on("subscribed", () => {
+          console.log(`📡 Subscribed to dev webhook channel: ${devChannel}`);
+        });
 
-      devSubscription.on("error", (ctx) => {
-        console.log("Dev subscription error:", ctx.error);
-      });
+        this.devSubscription.on("error", (ctx) => {
+          console.log("Dev subscription error:", ctx.error);
+        });
+      }
 
-      devSubscription.subscribe();
+      // Subscribe if not already subscribed (handles reconnection case)
+      if (this.devSubscription.state !== "subscribed") {
+        this.devSubscription.subscribe();
+      }
     }
   }
 
   async stop(): Promise<void> {
+    if (this.realtimeSubscription) {
+      this.realtimeSubscription.unsubscribe();
+      this.realtimeSubscription = null;
+    }
+    if (this.devSubscription) {
+      this.devSubscription.unsubscribe();
+      this.devSubscription = null;
+    }
     if (this.centrifuge) {
       this.centrifuge.disconnect();
       this.centrifuge = null;
