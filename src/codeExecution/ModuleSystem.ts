@@ -1,6 +1,7 @@
 import * as vm from "vm";
 import ts from "typescript";
 import { createRequire } from "module";
+import * as path from "path";
 import { VirtualFileSystem } from "./VirtualFileSystem";
 import { DebugContext } from "../cli/debug/debugContext";
 import * as SDK from "../index";
@@ -175,9 +176,15 @@ export class ModuleSystem {
       : baseContext;
 
     try {
-      // In debug mode, use the original file path for better debugger integration
+      // Convert relative path to absolute path for VSCode breakpoint mapping
+      // Files in VFS are relative to process.cwd() (see getUserProject in index.ts)
+      const absoluteFilePath = path.isAbsolute(filePath)
+        ? filePath
+        : path.resolve(process.cwd(), filePath);
+
+      // In debug mode, use absolute file path for better debugger integration
       const scriptOptions = {
-        filename: this.debugMode ? filePath : filePath,
+        filename: this.debugMode ? absoluteFilePath : filePath,
         lineOffset: 0,
         columnOffset: 0,
         produceCachedData: false,

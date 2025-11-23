@@ -37,7 +37,8 @@ export async function devCommand(
 ) {
   const port = parseInt(options.port);
   const host = options.host;
-  let debugMode = options.debug || false;
+  // Debug mode is enabled by default in dev mode
+  let debugMode = options.debug !== false;
   let debugPort = options.debugPort ? parseInt(options.debugPort) : 9229;
 
   // Check if running with Bun and warn about debugging limitations
@@ -96,14 +97,8 @@ export async function devCommand(
     process.exit(1);
   }
 
-  logger.info(`Development Mode${debugMode ? " (Debug Enabled)" : ""}`);
+  logger.info(`Development Mode`);
   logger.plain(`📂 Watching: ${entrypoint}`);
-  if (debugMode) {
-    logger.plain(`🐛 Debug mode enabled on port ${debugPort}`);
-    logger.debugInfo(`   • Enhanced error reporting`);
-    logger.debugInfo(`   • Source map support`);
-    logger.debugInfo(`   • Debug utilities available in user code`);
-  }
 
   // Create orchestrator
   const orchestrator = new DevModeOrchestrator({

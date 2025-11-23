@@ -31,12 +31,19 @@ export class InspectorManager {
     }
 
     try {
-      // Open the inspector on the specified port
-      const url = inspector.url();
-      if (!url) {
+      // Check if inspector is already open (e.g., process started with --inspect)
+      let url = inspector.url();
+      
+      if (url) {
+        // Inspector already open - extract port from URL and reuse it
+        const urlMatch = url.match(/^ws:\/\/.*:(\d+)\//);
+        if (urlMatch) {
+          const existingPort = parseInt(urlMatch[1], 10);
+          this.debugPort = existingPort;
+        }
+      } else {
+        // No inspector open - open one on the specified port
         inspector.open(this.debugPort);
-        // Minimal inspector startup log - already shown in engine
-        // console.log(`🔍 Node.js Inspector started on port ${this.debugPort}`);
       }
 
       this.session = new inspector.Session();
@@ -49,9 +56,6 @@ export class InspectorManager {
 
       // Enable required domains
       await this.enableInspectorDomains();
-
-      // Remove verbose inspector logs - users just need to know it's working
-      // console.log('✅ Inspector session established');
     } catch (error) {
       console.error("Failed to start inspector:", error);
       throw error;

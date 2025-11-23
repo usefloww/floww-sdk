@@ -70,7 +70,7 @@ export class DebugContext {
   getOriginalPosition(
     filename: string,
     line: number,
-    column: number,
+    column: number
   ): Position {
     const sourceMap = this.sourceMaps.get(filename);
     if (!sourceMap) {
@@ -193,7 +193,7 @@ export class DebugContext {
 
     console.error("\n🐛 ENHANCED DEBUG ERROR REPORT");
     console.error(
-      "================================================================",
+      "================================================================"
     );
 
     // Basic error information
@@ -226,7 +226,7 @@ export class DebugContext {
 
           if (originalPos.line !== line || originalPos.column !== column) {
             console.error(
-              `   ${stackLine} → Original: ${filePath}:${originalPos.line}:${originalPos.column}`,
+              `   ${stackLine} → Original: ${filePath}:${originalPos.line}:${originalPos.column}`
             );
           } else {
             console.error(`   ${stackLine}`);
@@ -237,12 +237,12 @@ export class DebugContext {
             const sourceContext = this.getSourceContext(
               filePath,
               originalPos.line,
-              2,
+              2
             );
             if (sourceContext.length > 0) {
               console.error("     Source context:");
               sourceContext.forEach((contextLine) =>
-                console.error(`       ${contextLine}`),
+                console.error(`       ${contextLine}`)
               );
             }
           }
@@ -282,14 +282,14 @@ export class DebugContext {
     }
 
     console.error(
-      "================================================================\n",
+      "================================================================\n"
     );
   }
 
   getSourceContext(
     filePath: string,
     line: number,
-    contextLines: number = 3,
+    contextLines: number = 3
   ): string[] {
     try {
       // Try to read the actual source file if it exists in the file system
@@ -311,7 +311,9 @@ export class DebugContext {
         for (let i = startLine; i < endLine; i++) {
           const lineNumber = i + 1;
           const prefix = lineNumber === line ? "→" : " ";
-          const formattedLine = `${prefix} ${lineNumber.toString().padStart(3)}: ${lines[i] || ""}`;
+          const formattedLine = `${prefix} ${lineNumber
+            .toString()
+            .padStart(3)}: ${lines[i] || ""}`;
           context.push(formattedLine);
         }
 
@@ -351,13 +353,20 @@ export class DebugContext {
   }
 
   getDebuggerUrl(): string | null {
-    return this.inspectorManager?.getDebuggerUrl() || null;
+    if (!this.inspectorManager) {
+      return null;
+    }
+    return this.inspectorManager.getDebuggerUrl();
+  }
+
+  getDebugPort(): number {
+    return this.debugPort;
   }
 
   async setBreakpoint(
     scriptId: string,
     lineNumber: number,
-    columnNumber?: number,
+    columnNumber?: number
   ): Promise<any> {
     if (!this.inspectorManager) {
       throw new Error("Inspector not initialized");
@@ -365,7 +374,7 @@ export class DebugContext {
     return this.inspectorManager.setBreakpoint(
       scriptId,
       lineNumber,
-      columnNumber,
+      columnNumber
     );
   }
 
