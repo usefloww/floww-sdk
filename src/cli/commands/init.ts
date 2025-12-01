@@ -23,6 +23,12 @@ interface InitOptions {
 export async function initCommand(
   options: InitOptions = {}
 ): Promise<string | null> {
+  const auth = await getValidAuth();
+  if (!auth) {
+    logger.error("Not logged in. Run 'npx floww login' first.");
+    return null;
+  }
+
   if (!options.silent) {
     logger.info("Initializing new Floww project");
   }
@@ -108,27 +114,16 @@ export async function initCommand(
     }
 
     // Check if user is authenticated
-    const auth = await getValidAuth();
-    let workflowId: string | undefined;
 
-    if (auth) {
-      // User is authenticated - create workflow via API
-      const result = await setupWorkflow({
-        suggestedName: name,
-        allowCreate: true,
-      });
-      workflowId = result.workflowId;
-    } else {
-      // User is not authenticated - skip API calls
-      if (!options.silent) {
-        logger.warn("Not logged in - creating local project only");
-      }
-      workflowId = undefined;
-    }
+    const result = await setupWorkflow({
+      suggestedName: name,
+      allowCreate: true,
+    });
+    const workflowId = result.workflowId;
 
     // Create config
     const config = {
-      ...(workflowId && { workflowId }),
+      workflowId,
       name,
       ...(options.description && { description: options.description }),
       version: "1.0.0",
@@ -141,11 +136,7 @@ export async function initCommand(
     if (!options.silent) {
       logger.success("Created floww.yaml");
       logger.plain(`   Workflow: ${name}`);
-      if (workflowId) {
-        logger.plain(`   Workflow ID: ${workflowId}`);
-      } else {
-        logger.plain("   Workflow ID: (not set - login required)");
-      }
+      logger.plain(`   Workflow ID: ${workflowId}`);
     }
 
     if (initMode === "new" && !options.silent) {
@@ -168,26 +159,7 @@ export async function initCommand(
 
       if (initMode === "new") {
         const dirName = path.basename(projectDir);
-        if (!workflowId) {
-          logger.plain(`
-Created files:
-  - floww.yaml
-  - main.ts
-  - package.json
-  - Dockerfile
-  - .dockerignore
-  - .gitignore
-
-Next steps:
-  1. cd ${dirName}
-  2. npm install
-  3. Edit your workflow in main.ts
-  4. Login: npx floww login
-  5. Deploy: npx floww deploy
-  6. Start building! 🚀
-`);
-        } else {
-          logger.plain(`
+        logger.plain(`
 Created files:
   - floww.yaml
   - main.ts
@@ -204,29 +176,18 @@ Next steps:
   5. Deploy: npx floww deploy
   6. Start building! 🚀
 `);
-        }
       } else {
-        if (!workflowId) {
-          logger.plain(`
+        logger.plain(`
 Next steps:
   1. Edit your workflow in main.ts
-  2. Login: npx floww login
+  2. Run: npx floww dev
   3. Deploy: npx floww deploy
   4. Start building! 🚀
 `);
-        } else {
-          logger.plain(`
-Next steps:
-  1. Edit your workflow in main.ts
-  2. Run: npx floww dev main.ts
-  3. Deploy: npx floww deploy
-  4. Start building! 🚀
-`);
-        }
       }
     }
 
-    return workflowId || null;
+    return workflowId;
   } catch (error) {
     logger.error("Failed to initialize project", error);
     if (options.silent) {
@@ -305,7 +266,10 @@ async function scaffoldProject(projectDir: string, projectName: string) {
   let shouldUseExisting = false;
 
   if (existingDockerfile) {
-    const relativeDockerfilePath = path.relative(projectDir, existingDockerfile);
+    const relativeDockerfilePath = path.relative(
+      projectDir,
+      existingDockerfile
+    );
     logger.info(`Found Dockerfile at: ${relativeDockerfilePath}`);
     shouldUseExisting = await logger.confirm(
       "Would you like to use this existing Dockerfile?"
@@ -315,7 +279,10 @@ async function scaffoldProject(projectDir: string, projectName: string) {
   if (shouldUseExisting && existingDockerfile) {
     // Calculate relative paths for build config
     const dockerfileDir = path.dirname(existingDockerfile);
-    const relativeDockerfilePath = path.relative(projectDir, existingDockerfile);
+    const relativeDockerfilePath = path.relative(
+      projectDir,
+      existingDockerfile
+    );
     const relativeContextPath = path.relative(projectDir, dockerfileDir);
 
     // Update floww.yaml with build config
