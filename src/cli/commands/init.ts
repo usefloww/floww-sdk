@@ -172,7 +172,7 @@ Next steps:
   1. cd ${dirName}
   2. npm install
   3. Edit your workflow in main.ts
-  4. Run: npx floww dev main.ts
+  4. Run: npx floww dev
   5. Deploy: npx floww deploy
   6. Start building! 🚀
 `);
@@ -343,7 +343,7 @@ function createPackageJson(filePath: string, projectName: string) {
     version: "1.0.0",
     type: "module",
     scripts: {
-      dev: "floww dev main.ts",
+      dev: "floww dev",
       deploy: "floww deploy",
     },
     dependencies: {
