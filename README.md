@@ -30,7 +30,7 @@ github.triggers.onPush({
 });
 ```
 
-**Start building in 30 seconds: **: `npx floww init`
+**Start building in 30 seconds:** `npx floww init`
 
 **Join our community:** [Discord](https://discord.gg/D9bughShqn)
 
