@@ -283,7 +283,7 @@ export class FlowwLogger {
     const result = await text({
       message,
       placeholder,
-      defaultValue,
+      initialValue: defaultValue, // Use initialValue to prefill the input field
     });
 
     if (isCancel(result)) {

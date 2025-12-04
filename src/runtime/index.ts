@@ -287,12 +287,10 @@ export async function handleGetDefinitions(
     }));
 
     // Convert providers to standardized format
-    const providerDefinitions = Object.values(providers).map(
-      (value: any) => ({
-        type: value.type,
-        alias: value.alias,
-      })
-    );
+    const providerDefinitions = Object.values(providers).map((value: any) => ({
+      type: value.type,
+      alias: value.alias,
+    }));
 
     return {
       success: true,

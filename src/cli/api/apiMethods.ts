@@ -1,3 +1,4 @@
+import { logger } from "../utils/logger";
 import { defaultApiClient } from "./client";
 import { ConflictError } from "./errors";
 
@@ -233,11 +234,8 @@ export async function createRuntime(
     );
   } catch (error) {
     if (error instanceof ConflictError) {
-      const runtimeId = (error.details as any)?.detail?.runtime_id;
-      throw new RuntimeAlreadyExistsError(
-        runtimeId || "unknown",
-        "Runtime already exists"
-      );
+      logger.debugInfo("Runtime already exists");
+      return await getRuntimeStatus(error.details.detail.runtime_id);
     }
     throw error;
   }

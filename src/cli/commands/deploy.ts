@@ -98,15 +98,8 @@ async function pollRuntimeUntilReady(runtimeId: string): Promise<void> {
   }
 }
 
-async function selectWorkflow(): Promise<string> {
+async function selectWorkflow(projectConfig?: ProjectConfig): Promise<string> {
   const workflows = await fetchWorkflows();
-
-  if (workflows.length === 0) {
-    logger.error(
-      "No workflows found. Create one first in the Floww dashboard."
-    );
-    process.exit(1);
-  }
 
   // Use interactive selection with clack in interactive mode
   if (logger.interactive) {
@@ -120,15 +113,39 @@ async function selectWorkflow(): Promise<string> {
         : workflow.description,
     }));
 
+    // Add "Create new workflow" option
+    options.push({
+      value: "__CREATE_NEW__",
+      label: "Create new workflow",
+      hint: "Create a new workflow for this project",
+    });
+
     const selectedId = await logger.select(
       "Select a workflow to deploy to:",
       options
     );
+
+    // If user selected "Create new workflow"
+    if (selectedId === "__CREATE_NEW__") {
+      const { workflowId } = await selectOrCreateWorkflow({
+        suggestedName: projectConfig?.name,
+        allowCreate: true,
+      });
+      return workflowId;
+    }
+
     const selectedWorkflow = workflows.find((w) => w.id === selectedId)!;
     logger.success(`Selected: ${selectedWorkflow.name}`);
     return selectedId;
   } else {
-    // Non-interactive mode: return first workflow
+    // Non-interactive mode
+    if (workflows.length === 0) {
+      logger.error(
+        "No workflows found. Create one first in the Floww dashboard."
+      );
+      process.exit(1);
+    }
+    // Return first workflow
     const selectedWorkflow = workflows[0];
     logger.debugInfo(`Auto-selected workflow: ${selectedWorkflow.name}`);
     logger.tip(
@@ -233,7 +250,7 @@ export async function deployCommand() {
     console.log("🎯 Selecting deployment workflow...");
 
     try {
-      const selectedWorkflowId = await selectWorkflow();
+      const selectedWorkflowId = await selectWorkflow(projectConfig);
 
       // Update floww.yaml with selected workflow
       projectConfig = updateProjectConfig(

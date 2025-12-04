@@ -6,6 +6,8 @@ import {
   getProjectConfigPath,
   updateProjectConfig,
   BuildConfig,
+  loadRawProjectConfig,
+  saveProjectConfig,
 } from "../config/projectConfig";
 import { fetchNamespaces } from "../api/apiMethods";
 import { logger } from "../utils/logger";
@@ -29,112 +31,176 @@ export async function initCommand(
     return null;
   }
 
-  if (!options.silent) {
-    logger.info("Initializing new Floww project");
-  }
-
-  // Ask user to choose initialization mode
-  let initMode: "current" | "new" = "current";
+  // Check for existing config FIRST (before asking about initialization mode)
   let projectDir = process.cwd();
+  let existingConfig: Record<string, any> | null = null;
+  let initMode: "current" | "new" = "current";
 
-  if (!options.silent) {
-    initMode = await logger.select("How would you like to initialize?", [
-      {
-        value: "new" as const,
-        label: "Create new scaffolded project",
-        hint: "Generate complete project structure",
-      },
-      {
-        value: "current" as const,
-        label: "Initialize in current directory",
-        hint: "Add floww.yaml to existing project",
-      },
-    ]);
+  // Check if config exists in current directory
+  const configExists = hasProjectConfig(projectDir);
+  existingConfig = configExists ? loadRawProjectConfig(projectDir) : null;
 
-    // If creating new project, ask for directory name
-    if (initMode === "new") {
-      const dirName = await logger.text(
-        "Project directory name:",
-        "my-floww-project"
-      );
-      if (!dirName) {
-        logger.error("Directory name is required");
-        return null;
-      }
-      if (!/^[a-zA-Z0-9\-_]+$/.test(dirName)) {
-        logger.error(
-          "Directory name can only contain letters, numbers, hyphens, and underscores"
-        );
-        return null;
-      }
-      projectDir = path.join(process.cwd(), dirName);
-
-      // Check if directory already exists
-      if (fs.existsSync(projectDir)) {
-        logger.error(`Directory '${dirName}' already exists`);
-        return null;
-      }
-
-      // Create the directory
-      fs.mkdirSync(projectDir, { recursive: true });
-      logger.success(`Created directory: ${dirName}`);
-    }
-  }
-
-  // Check if config already exists (in target directory)
-  if (hasProjectConfig(projectDir) && !options.force) {
+  // If config exists and force is not set, skip initialization mode and just update
+  if (existingConfig && !options.force) {
     if (!options.silent) {
-      logger.error("floww.yaml already exists in this directory.");
-      logger.error(
-        "   Use --force to overwrite or run this command in a different directory."
+      logger.info("floww.yaml already exists. Updating missing fields...");
+    }
+    // Skip initialization mode - we're updating existing config
+  } else {
+    // No existing config (or --force used), ask about initialization mode
+    if (!options.silent) {
+      logger.info("Initializing new Floww project");
+    }
+
+    if (!options.silent) {
+      initMode = await logger.select("How would you like to initialize?", [
+        {
+          value: "new" as const,
+          label: "Create new scaffolded project",
+          hint: "Generate complete project structure",
+        },
+        {
+          value: "current" as const,
+          label: "Initialize in current directory",
+          hint: "Add floww.yaml to existing project",
+        },
+      ]);
+
+      // If creating new project, ask for directory name
+      if (initMode === "new") {
+        const dirName = await logger.text(
+          "Project directory name:",
+          "my-floww-project"
+        );
+        if (!dirName) {
+          logger.error("Directory name is required");
+          return null;
+        }
+        if (!/^[a-zA-Z0-9\-_]+$/.test(dirName)) {
+          logger.error(
+            "Directory name can only contain letters, numbers, hyphens, and underscores"
+          );
+          return null;
+        }
+        projectDir = path.join(process.cwd(), dirName);
+
+        // Check if directory already exists
+        if (fs.existsSync(projectDir)) {
+          logger.error(`Directory '${dirName}' already exists`);
+          return null;
+        }
+
+        // Create the directory
+        fs.mkdirSync(projectDir, { recursive: true });
+        logger.success(`Created directory: ${dirName}`);
+      }
+    }
+
+    // Re-check config in the target directory (might be different if new project)
+    const finalConfigExists = hasProjectConfig(projectDir);
+    existingConfig = finalConfigExists ? loadRawProjectConfig(projectDir) : null;
+
+    // If config file exists but couldn't be loaded (invalid YAML), warn user
+    if (
+      finalConfigExists &&
+      !existingConfig &&
+      !options.force &&
+      !options.silent
+    ) {
+      logger.warn(
+        "floww.yaml exists but contains invalid YAML. It will be overwritten."
       );
     }
-    return null;
   }
 
   try {
-    // Get workflow name
+    // Always prompt for workflow name, but prefill with existing value if available
     let name = options.name;
-    if (!name) {
-      name = await logger.text("Workflow name:", "my-workflow");
-      if (!name) {
-        logger.error("Workflow name is required");
-        return null;
-      }
-      if (name.length < 2) {
-        logger.error("Name must be at least 2 characters");
-        return null;
-      }
-      if (!/^[a-zA-Z0-9\-_\s]+$/.test(name)) {
-        logger.error(
-          "Name can only contain letters, numbers, spaces, hyphens, and underscores"
-        );
-        return null;
-      }
+    if (!name && !options.silent) {
+      const defaultName = existingConfig?.name || "my-workflow";
+      const nameInput = await logger.text("Workflow name:", undefined, defaultName);
+      // If user presses Enter without typing, use the default value
+      name = nameInput || defaultName;
+    } else if (!name) {
+      // Silent mode: use existing or default
+      name = existingConfig?.name || "my-workflow";
     }
 
-    // Check if user is authenticated
+    if (!name) {
+      logger.error("Workflow name is required");
+      return null;
+    }
+    if (name.length < 2) {
+      logger.error("Name must be at least 2 characters");
+      return null;
+    }
+    if (!/^[a-zA-Z0-9\-_\s]+$/.test(name)) {
+      logger.error(
+        "Name can only contain letters, numbers, spaces, hyphens, and underscores"
+      );
+      return null;
+    }
 
-    const result = await setupWorkflow({
-      suggestedName: name,
-      allowCreate: true,
-    });
-    const workflowId = result.workflowId;
+    // Get workflowId - use existing if available, otherwise create new
+    let workflowId = existingConfig?.workflowId;
+    if (!workflowId) {
+      const result = await setupWorkflow({
+        suggestedName: name,
+        allowCreate: true,
+      });
+      workflowId = result.workflowId;
+    }
 
-    // Create config
-    const config = {
+    // Prompt for description if not provided via options
+    let description = options.description;
+    if (description === undefined && !options.silent) {
+      const defaultDescription = existingConfig?.description || "";
+      const descInput = await logger.text("Description (optional):", undefined, defaultDescription);
+      // If user presses Enter without typing, use the default value (or empty string)
+      description = descInput !== undefined ? descInput : defaultDescription;
+      // Convert empty string to undefined for optional field
+      description = description || undefined;
+    } else if (description === undefined) {
+      description = existingConfig?.description;
+    }
+
+    // Set version and entrypoint automatically (don't prompt for them)
+    const version = existingConfig?.version || "1.0.0";
+    const entrypoint = existingConfig?.entrypoint || "main.ts";
+
+    // Build config object, preserving existing values and custom fields
+    const config: Record<string, any> = {
+      ...existingConfig, // Preserve all existing fields including custom ones
       workflowId,
       name,
-      ...(options.description && { description: options.description }),
-      version: "1.0.0",
-      entrypoint: "main.ts",
+      ...(description && { description }),
+      version,
+      entrypoint,
     };
 
-    // Save config
-    initProjectConfig(config, projectDir, options.force);
+    // Remove undefined values to keep YAML clean
+    Object.keys(config).forEach((key) => {
+      if (config[key] === undefined) {
+        delete config[key];
+      }
+    });
+
+    // Save config - preserve custom fields if updating existing config
+    const isUpdating = existingConfig && !options.force;
+    if (isUpdating) {
+      // Update existing config, preserving custom fields
+      saveProjectConfig(config, projectDir, true);
+    } else {
+      // Create new config
+      initProjectConfig(config, projectDir, options.force);
+    }
 
     if (!options.silent) {
-      logger.success("Created floww.yaml");
+      if (isUpdating) {
+        logger.success("Updated floww.yaml");
+      } else {
+        logger.success("Created floww.yaml");
+      }
       logger.plain(`   Workflow: ${name}`);
       logger.plain(`   Workflow ID: ${workflowId}`);
     }

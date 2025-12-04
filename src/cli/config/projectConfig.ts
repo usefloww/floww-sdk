@@ -194,11 +194,36 @@ export function tryLoadProjectConfig(
 }
 
 /**
+ * Load raw YAML config without validation (for partial configs)
+ * Returns the raw object with all fields preserved, including custom ones
+ */
+export function loadRawProjectConfig(
+  dir: string = process.cwd(),
+): Record<string, any> | null {
+  const configPath = getProjectConfigPath(dir);
+
+  if (!fs.existsSync(configPath)) {
+    return null;
+  }
+
+  try {
+    const content = fs.readFileSync(configPath, "utf-8");
+    const config = yaml.load(content) as Record<string, any>;
+    return config || {};
+  } catch (error) {
+    // If YAML is invalid, return null so init can handle it
+    return null;
+  }
+}
+
+/**
  * Save project config to floww.yaml
+ * @param preserveCustomFields - If true, merges with existing config to preserve custom fields
  */
 export function saveProjectConfig(
-  config: ProjectConfig,
+  config: ProjectConfig | Record<string, any>,
   dir: string = process.cwd(),
+  preserveCustomFields: boolean = false,
 ): void {
   const configPath = getProjectConfigPath(dir);
 
@@ -207,7 +232,18 @@ export function saveProjectConfig(
     throw new Error("Cannot save config: name is required");
   }
 
-  const content = yaml.dump(config, {
+  let configToSave: Record<string, any> = config;
+
+  // If preserving custom fields, merge with existing config
+  if (preserveCustomFields && fs.existsSync(configPath)) {
+    const existing = loadRawProjectConfig(dir);
+    if (existing) {
+      // Merge: existing fields are preserved, new fields override
+      configToSave = { ...existing, ...config };
+    }
+  }
+
+  const content = yaml.dump(configToSave, {
     indent: 2,
     lineWidth: -1,
     noRefs: true,
@@ -237,13 +273,15 @@ export function initProjectConfig(
 
 /**
  * Update specific fields in the project config
+ * Preserves custom fields that aren't part of the ProjectConfig interface
  */
 export function updateProjectConfig(
   updates: Partial<ProjectConfig>,
   dir: string = process.cwd(),
 ): ProjectConfig {
+  const existing = loadRawProjectConfig(dir);
   const config = loadProjectConfig(dir);
-  const updatedConfig = { ...config, ...updates };
-  saveProjectConfig(updatedConfig, dir);
-  return updatedConfig;
+  const updatedConfig = { ...existing, ...config, ...updates };
+  saveProjectConfig(updatedConfig, dir, true);
+  return updatedConfig as ProjectConfig;
 }
