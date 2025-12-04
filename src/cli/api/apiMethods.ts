@@ -119,9 +119,7 @@ export async function fetchWorkflows(): Promise<Workflow[]> {
 }
 
 export async function fetchWorkflow(workflowId: string): Promise<Workflow> {
-  return await defaultApiClient().apiCall<Workflow>(
-    `/workflows/${workflowId}`
-  );
+  return await defaultApiClient().apiCall<Workflow>(`/workflows/${workflowId}`);
 }
 
 export async function createWorkflow(
@@ -191,14 +189,6 @@ export async function readProjectFiles(
   };
 }
 
-// Custom error for when image already exists
-export class ImageAlreadyExistsError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "ImageAlreadyExistsError";
-  }
-}
-
 export class RuntimeAlreadyExistsError extends Error {
   runtimeId: string;
 
@@ -212,7 +202,7 @@ export class RuntimeAlreadyExistsError extends Error {
 // Runtime API methods
 export async function getPushData(
   image_hash: string
-): Promise<PushTokenResponse> {
+): Promise<PushTokenResponse | null> {
   try {
     return await defaultApiClient().apiCall<PushTokenResponse>(
       "/runtimes/push_token",
@@ -223,7 +213,8 @@ export async function getPushData(
     );
   } catch (error) {
     if (error instanceof ConflictError) {
-      throw new ImageAlreadyExistsError("Image already exists in registry");
+      // Image already exists in registry, return null to indicate no push needed
+      return null;
     }
     throw error;
   }

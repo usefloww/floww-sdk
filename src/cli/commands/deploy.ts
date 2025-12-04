@@ -8,7 +8,6 @@ import {
   ProjectConfig,
 } from "../config/projectConfig";
 import {
-  ImageAlreadyExistsError,
   createRuntime,
   getRuntimeStatus,
   createWorkflowDeployment,
@@ -132,7 +131,9 @@ async function selectWorkflow(): Promise<string> {
     // Non-interactive mode: return first workflow
     const selectedWorkflow = workflows[0];
     logger.debugInfo(`Auto-selected workflow: ${selectedWorkflow.name}`);
-    logger.tip('Run "npx floww init" to set a default workflow for this project');
+    logger.tip(
+      'Run "npx floww init" to set a default workflow for this project'
+    );
     return selectedWorkflow.id;
   }
 }
@@ -235,7 +236,10 @@ export async function deployCommand() {
       const selectedWorkflowId = await selectWorkflow();
 
       // Update floww.yaml with selected workflow
-      projectConfig = updateProjectConfig({ workflowId: selectedWorkflowId }, projectDir);
+      projectConfig = updateProjectConfig(
+        { workflowId: selectedWorkflowId },
+        projectDir
+      );
       logger.debugInfo("Workflow saved to floww.yaml");
     } catch (error) {
       logger.error(
@@ -369,25 +373,10 @@ export async function deployCommand() {
     localImage: buildResult.localImage,
   });
 
-  let shouldPush = true;
-  let pushData: PushTokenResponse = {} as any;
-
-  try {
-    pushData = await getPushData(imageHash);
-  } catch (error) {
-    if (error instanceof ImageAlreadyExistsError) {
-      shouldPush = false;
-    } else {
-      logger.error(
-        "Failed to get push data:",
-        error instanceof Error ? error.message : error
-      );
-      process.exit(1);
-    }
-  }
+  const pushData = await getPushData(imageHash);
 
   // 5. Push images to registry (only if needed)
-  if (shouldPush) {
+  if (pushData !== null) {
     await logger.task(
       "☁️  Uploading runtime image (this may take a moment)",
       async () => {
@@ -404,7 +393,9 @@ export async function deployCommand() {
       }
     );
   } else {
-    logger.debugInfo("Runtime image already exists, skipping upload");
+    logger.debugInfo(
+      "Runtime image already exists in registry, skipping upload"
+    );
   }
 
   // 6. Create and prepare runtime

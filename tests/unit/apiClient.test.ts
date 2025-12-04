@@ -152,10 +152,17 @@ describe("API Client Unit Tests", () => {
     it("should get push token for Docker registry", async () => {
       const pushData = await getPushData("sha256:test-hash");
 
+      expect(pushData).not.toBeNull();
       expect(pushData).toHaveProperty("password");
       expect(pushData).toHaveProperty("registry_url");
       expect(pushData).toHaveProperty("expires_in");
       expect(pushData).toHaveProperty("image_tag");
+    });
+
+    it("should return null when image already exists (409)", async () => {
+      const pushData = await getPushData("sha256:already-exists");
+
+      expect(pushData).toBeNull();
     });
 
     it("should create a new runtime", async () => {
