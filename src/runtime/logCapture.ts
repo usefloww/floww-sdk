@@ -8,8 +8,14 @@
 const LOG_LEVELS = ["log", "info", "warn", "error", "debug"] as const;
 type LogLevel = (typeof LOG_LEVELS)[number];
 
+export interface StructuredLogEntry {
+  timestamp: string;
+  level: string;
+  message: string;
+}
+
 export class LogCapture {
-  private logs: string[] = [];
+  private logs: StructuredLogEntry[] = [];
   private originalConsole: Record<LogLevel, typeof console.log> = {} as any;
   private isCapturing = false;
 
@@ -35,7 +41,7 @@ export class LogCapture {
   private intercept(level: LogLevel, args: any[]): void {
     const timestamp = new Date().toISOString();
     const message = this.formatArgs(args);
-    this.logs.push(`[${timestamp}] [${level.toUpperCase()}] ${message}`);
+    this.logs.push({ timestamp, level, message });
     this.originalConsole[level](...args);
   }
 
@@ -58,8 +64,8 @@ export class LogCapture {
     }
   }
 
-  getLogs(): string {
-    return this.logs.join("\n");
+  getStructuredLogs(): StructuredLogEntry[] {
+    return [...this.logs];
   }
 
   clear(): void {

@@ -7,7 +7,7 @@
 
 import { getMatchingTriggers } from "../userCode/utils";
 import { executeUserProject } from "../codeExecution";
-import { LogCapture } from "./logCapture";
+import { LogCapture, StructuredLogEntry } from "./logCapture";
 
 /**
  * Create wrapped project with auto-registration support
@@ -67,22 +67,32 @@ function createWrappedProject(
  * @param backendUrl - The backend URL to report to
  * @param executionId - The execution ID
  * @param authToken - Authentication token for the backend
- * @param options - Optional error details and logs
+ * @param options - Optional error details, logs, and duration
  */
 export async function reportExecutionStatus(
   backendUrl: string,
   executionId: string,
   authToken: string,
-  options?: { error?: { message: string; stack?: string }; logs?: string }
+  options?: {
+    error?: { message: string };
+    logs?: StructuredLogEntry[];
+    duration_ms?: number;
+  }
 ) {
   try {
-    const body: { error?: { message: string; stack?: string }; logs?: string } =
-      {};
+    const body: {
+      error?: { message: string };
+      logs?: StructuredLogEntry[];
+      duration_ms?: number;
+    } = {};
     if (options?.error) {
       body.error = options.error;
     }
     if (options?.logs) {
       body.logs = options.logs;
+    }
+    if (options?.duration_ms !== undefined) {
+      body.duration_ms = options.duration_ms;
     }
 
     const response = await fetch(
@@ -320,10 +330,9 @@ export async function handleGetDefinitions(
 export async function invokeTrigger(
   event: InvokeTriggerEvent
 ): Promise<InvokeTriggerResult> {
-  const backendUrl = process.env.BACKEND_URL || "http://localhost:8000";
   const logCapture = new LogCapture();
+  let durationMs: number | undefined;
 
-  logCapture.start();
   try {
     console.log("🚀 Floww Runtime - Processing event");
 
@@ -384,28 +393,34 @@ export async function invokeTrigger(
     }
 
     // Execute all matching triggers
+    // Start log capture and timing just before user code execution
     let executedCount = 0;
     for (const trigger of matchingTriggers) {
       console.log(
         `🎯 Executing trigger: ${event.trigger.provider.type}:${event.trigger.provider.alias}.${event.trigger.triggerType}`
       );
 
+      // Start capturing logs and measure duration only for user code
+      const startTime = Date.now();
+      logCapture.start();
+
       // Pass event data directly to handler
       await trigger.handler({}, event.data);
+
+      logCapture.stop();
+      durationMs = Date.now() - startTime;
       executedCount++;
     }
 
-    // Stop capturing before reporting to exclude report logs from captured output
-    logCapture.stop();
-    const logs = logCapture.getLogs();
+    const logs = logCapture.getStructuredLogs();
 
     // Report successful execution to backend if credentials provided
-     if (event.backendUrl && event.executionId && event.authToken) {
+    if (event.backendUrl && event.executionId && event.authToken) {
       await reportExecutionStatus(
         event.backendUrl,
         event.executionId,
         event.authToken,
-        { logs }
+        { logs, duration_ms: durationMs }
       );
     }
 
@@ -417,13 +432,12 @@ export async function invokeTrigger(
   } catch (error: any) {
     console.error("❌ Trigger execution failed:", error);
 
-    // Stop capturing before reporting to exclude report logs from captured output
+    // Stop capturing if still active
     logCapture.stop();
-    const logs = logCapture.getLogs();
+    const logs = logCapture.getStructuredLogs();
 
     const errorDetails = {
       message: error.message,
-      stack: error.stack,
     };
 
     // Report failed execution to backend if credentials provided
@@ -435,6 +449,7 @@ export async function invokeTrigger(
         {
           error: errorDetails,
           logs,
+          duration_ms: durationMs,
         }
       );
     }
