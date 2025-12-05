@@ -98,7 +98,9 @@ export async function initCommand(
 
     // Re-check config in the target directory (might be different if new project)
     const finalConfigExists = hasProjectConfig(projectDir);
-    existingConfig = finalConfigExists ? loadRawProjectConfig(projectDir) : null;
+    existingConfig = finalConfigExists
+      ? loadRawProjectConfig(projectDir)
+      : null;
 
     // If config file exists but couldn't be loaded (invalid YAML), warn user
     if (
@@ -118,7 +120,11 @@ export async function initCommand(
     let name = options.name;
     if (!name && !options.silent) {
       const defaultName = existingConfig?.name || "my-workflow";
-      const nameInput = await logger.text("Workflow name:", undefined, defaultName);
+      const nameInput = await logger.text(
+        "Workflow name:",
+        undefined,
+        defaultName
+      );
       // If user presses Enter without typing, use the default value
       name = nameInput || defaultName;
     } else if (!name) {
@@ -155,7 +161,11 @@ export async function initCommand(
     let description = options.description;
     if (description === undefined && !options.silent) {
       const defaultDescription = existingConfig?.description || "";
-      const descInput = await logger.text("Description (optional):", undefined, defaultDescription);
+      const descInput = await logger.text(
+        "Description (optional):",
+        undefined,
+        defaultDescription
+      );
       // If user presses Enter without typing, use the default value (or empty string)
       description = descInput !== undefined ? descInput : defaultDescription;
       // Convert empty string to undefined for optional field
@@ -192,7 +202,7 @@ export async function initCommand(
       saveProjectConfig(config, projectDir, true);
     } else {
       // Create new config
-      initProjectConfig(config, projectDir, options.force);
+      initProjectConfig(config as any, projectDir, options.force);
     }
 
     if (!options.silent) {
