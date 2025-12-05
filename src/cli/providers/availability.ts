@@ -1,9 +1,11 @@
 import { fetchProviders, Provider } from "../api/apiMethods";
 import { logger } from "../utils/logger";
+import { SecretDefinition } from "../../common";
 
 export interface UsedProvider {
   type: string;
   alias?: string;
+  secretDefinitions?: SecretDefinition[];
 }
 
 export interface ProviderAvailabilityResult {
@@ -30,15 +32,31 @@ export async function checkProviderAvailability(
     const unavailable: UsedProvider[] = [];
 
     // Check each used provider
-    usedProviders.forEach((used) => {
+    for (const used of usedProviders) {
       const key = `${used.type}:${used.alias || "default"}`;
+      const providerExists = existingMap.has(key);
 
-      if (existingMap.has(key)) {
+      // If provider has secret definitions, also check if secrets are configured
+      if (providerExists && used.secretDefinitions && used.secretDefinitions.length > 0) {
+        const { SecretManager } = await import("../secrets/secretManager");
+        const { defaultApiClient } = await import("../api/client");
+        const existingProvider = existingMap.get(key)!;
+
+        const manager = new SecretManager(defaultApiClient(), existingProvider.namespace_id);
+        const secrets = await manager.getProviderSecrets(used.type, used.alias || "default");
+
+        // Check if secrets exist and have the required keys
+        if (secrets && used.secretDefinitions.every(def => secrets[def.key] !== undefined)) {
+          available.push(used);
+        } else {
+          unavailable.push(used);
+        }
+      } else if (providerExists) {
         available.push(used);
       } else {
         unavailable.push(used);
       }
-    });
+    }
 
     return {
       available,

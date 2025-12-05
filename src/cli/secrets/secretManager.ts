@@ -6,6 +6,7 @@ export type SecretDefinition = {
   key: string;
   label: string;
   type: "string" | "password";
+  dataType: "string" | "number" | "boolean";
   required: boolean;
 };
 
@@ -81,39 +82,31 @@ export class SecretManager {
     try {
       // List all secrets for this provider
       const allSecrets = await this.apiClient.apiCall<SecretResponse[]>(
-        `/secrets/namespace/${this.namespaceId}?provider=${encodeURIComponent(providerType)}`,
+        `/secrets/namespace/${this.namespaceId}?provider=${encodeURIComponent(providerType)}&name=${encodeURIComponent(credentialName)}`,
       );
 
       if (!Array.isArray(allSecrets) || allSecrets.length === 0) {
         return undefined;
       }
 
-      // Filter secrets that match the credential name pattern
-      const prefix = `${credentialName}:`;
-      const matchingSecrets = allSecrets.filter((s) =>
-        s.name.startsWith(prefix),
-      );
+      // Get the secret with its decrypted value
+      const secret = allSecrets[0];
+      const secretWithValue =
+        await this.apiClient.apiCall<SecretWithValueResponse>(
+          `/secrets/${secret.id}`,
+        );
 
-      if (matchingSecrets.length === 0) {
+      if (!secretWithValue?.value) {
         return undefined;
       }
 
-      // Fetch all secret values
-      const secrets: ProviderSecrets = {};
-      for (const secret of matchingSecrets) {
-        const secretWithValue =
-          await this.apiClient.apiCall<SecretWithValueResponse>(
-            `/secrets/${secret.id}`,
-          );
-
-        if (secretWithValue?.value) {
-          // Extract the key from the name (remove "credentialName:" prefix)
-          const key = secret.name.substring(prefix.length);
-          secrets[key] = secretWithValue.value;
-        }
+      // Parse JSON value
+      try {
+        return JSON.parse(secretWithValue.value);
+      } catch (error) {
+        console.error(`Failed to parse secret JSON for ${providerType}:${credentialName}`, error);
+        return undefined;
       }
-
-      return Object.keys(secrets).length > 0 ? secrets : undefined;
     } catch (error) {
       // 404 Not Found is okay - it just means no secrets exist yet
       if (error instanceof NotFoundError) {
@@ -184,9 +177,49 @@ export class SecretManager {
     credentialName: string,
     secrets: ProviderSecrets,
   ): Promise<void> {
-    // Set each secret individually
-    for (const [key, value] of Object.entries(secrets)) {
-      await this.setSecret(providerType, credentialName, key, value);
+    console.log(`[SecretManager] Storing secrets for ${providerType}:${credentialName}:`, secrets);
+    const jsonValue = JSON.stringify(secrets);
+    console.log(`[SecretManager] JSON value:`, jsonValue);
+
+    try {
+      // Check if secret already exists
+      const existing = await this.apiClient.apiCall<SecretResponse[]>(
+        `/secrets/namespace/${this.namespaceId}?provider=${encodeURIComponent(providerType)}&name=${encodeURIComponent(credentialName)}`,
+      );
+
+      if (Array.isArray(existing) && existing.length > 0) {
+        // Update existing secret
+        await this.apiClient.apiCall(`/secrets/${existing[0].id}`, {
+          method: "PATCH",
+          body: { value: jsonValue },
+        });
+      } else {
+        // Create new secret
+        await this.apiClient.apiCall("/secrets/", {
+          method: "POST",
+          body: {
+            namespace_id: this.namespaceId,
+            name: credentialName,
+            provider: providerType,
+            value: jsonValue,
+          },
+        });
+      }
+    } catch (error) {
+      // 404 Not Found means no secrets exist, so create new
+      if (error instanceof NotFoundError) {
+        await this.apiClient.apiCall("/secrets/", {
+          method: "POST",
+          body: {
+            namespace_id: this.namespaceId,
+            name: credentialName,
+            provider: providerType,
+            value: jsonValue,
+          },
+        });
+      } else {
+        throw error;
+      }
     }
   }
 
@@ -254,19 +287,18 @@ export class SecretManager {
     console.log(`Setting up credential: "${credentialName}"`);
     console.log();
 
-    const secrets: ProviderSecrets = {};
+    // Get existing secrets as JSON object
+    const existingSecrets = await this.getProviderSecrets(providerType, credentialName) || {};
+    const secrets: Record<string, any> = {};
 
     // Build inquirer prompts
     const prompts: any[] = [];
     for (const def of definitions) {
-      const existingValue = await this.getSecret(
-        providerType,
-        credentialName,
-        def.key,
-      );
+      console.log(`[Prompt Debug] Field: ${def.key}, dataType: ${def.dataType}, type: ${def.type}`);
+      const existingValue = existingSecrets[def.key];
 
       // Skip if already exists and not required
-      if (existingValue && !def.required) {
+      if (existingValue !== undefined && !def.required) {
         secrets[def.key] = existingValue;
         continue;
       }
@@ -275,16 +307,31 @@ export class SecretManager {
         type: def.type === "password" ? "password" : "input",
         name: def.key,
         message: def.label,
-        default: existingValue || undefined,
+        default: existingValue !== undefined ? String(existingValue) : undefined,
         validate: (input: string) => {
           if (def.required && !input.trim()) {
             return `${def.label} is required`;
           }
+
+          // Validate based on dataType
+          if (input.trim()) {
+            if (def.dataType === 'number') {
+              const num = Number(input);
+              if (isNaN(num)) {
+                return `${def.label} must be a valid number`;
+              }
+            } else if (def.dataType === 'boolean') {
+              if (!['true', 'false', '1', '0'].includes(input.toLowerCase())) {
+                return `${def.label} must be true/false or 1/0`;
+              }
+            }
+          }
+
           return true;
         },
         transformer: (input: string) => {
           // Show if existing value is being kept
-          if (!input && existingValue) {
+          if (!input && existingValue !== undefined) {
             return "(keeping existing value)";
           }
           return input;
@@ -295,21 +342,27 @@ export class SecretManager {
     // Prompt user for all secrets
     if (prompts.length > 0) {
       const answers = await inquirer.prompt(prompts);
+      console.log(`[Prompt Debug] Raw answers:`, answers);
 
-      // Merge answers with existing secrets
-      for (const [key, value] of Object.entries(answers)) {
+      // Merge answers with existing secrets, coercing types
+      for (const def of definitions) {
+        const value = answers[def.key];
+        console.log(`[Coercion Debug] ${def.key}: value="${value}", dataType=${def.dataType}`);
+
         if (value) {
-          secrets[key] = value as string;
-        } else {
-          // If no value provided, use existing value
-          const existingValue = await this.getSecret(
-            providerType,
-            credentialName,
-            key,
-          );
-          if (existingValue) {
-            secrets[key] = existingValue;
+          // Coerce based on dataType
+          if (def.dataType === 'number') {
+            const coerced = Number(value);
+            console.log(`[Coercion Debug] Coercing "${value}" to number: ${coerced}`);
+            secrets[def.key] = coerced;
+          } else if (def.dataType === 'boolean') {
+            secrets[def.key] = value.toLowerCase() === 'true' || value === '1';
+          } else {
+            secrets[def.key] = value as string;
           }
+        } else if (existingSecrets[def.key] !== undefined) {
+          // Use existing value if no new value provided
+          secrets[def.key] = existingSecrets[def.key];
         }
       }
     }
@@ -336,25 +389,18 @@ export class SecretManager {
     try {
       // List all secrets for this provider and credential
       const allSecrets = await this.apiClient.apiCall<SecretResponse[]>(
-        `/secrets/namespace/${this.namespaceId}?provider=${encodeURIComponent(providerType)}`,
+        `/secrets/namespace/${this.namespaceId}?provider=${encodeURIComponent(providerType)}&name=${encodeURIComponent(credentialName)}`,
       );
 
       if (!Array.isArray(allSecrets) || allSecrets.length === 0) {
         return;
       }
 
-      // Filter secrets that match the credential name pattern
-      const prefix = `${credentialName}:`;
-      const matchingSecrets = allSecrets.filter((s) =>
-        s.name.startsWith(prefix),
-      );
-
-      // Delete each matching secret
-      for (const secret of matchingSecrets) {
-        await this.apiClient.apiCall(`/secrets/${secret.id}`, {
-          method: "DELETE",
-        });
-      }
+      // Delete the secret
+      const secret = allSecrets[0];
+      await this.apiClient.apiCall(`/secrets/${secret.id}`, {
+        method: "DELETE",
+      });
     } catch (error) {
       // 404 Not Found is okay - it just means no secrets exist
       if (error instanceof NotFoundError) {

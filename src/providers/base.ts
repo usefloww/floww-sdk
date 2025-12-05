@@ -36,14 +36,22 @@ export abstract class BaseProvider implements Provider {
 
   /**
    * Initialize provider - tracks usage and merges backend config.
-   * Called automatically by constructor.
+   * Called automatically by constructor. Subclasses can override to
+   * set secretDefinitions before tracking.
    */
-  private initialize(): void {
+  protected initialize(): void {
     // Track provider usage for deployment validation
-    trackProviderUsage(this.providerType, this.credentialName);
+    trackProviderUsage(
+      this.providerType,
+      this.credentialName,
+      this.secretDefinitions
+    );
 
     // Auto-fetch and merge backend configuration
-    const backendConfig = getProviderConfig(this.providerType, this.credentialName);
+    const backendConfig = getProviderConfig(
+      this.providerType,
+      this.credentialName
+    );
     if (backendConfig) {
       // Backend config should not override explicit config passed to constructor
       this.config = { ...backendConfig, ...this.config };

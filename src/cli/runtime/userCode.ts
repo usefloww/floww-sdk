@@ -4,13 +4,14 @@ import {
   ExecuteUserProjectOptions,
   DebugContext,
 } from "@/codeExecution";
-import { Trigger } from "../../common";
+import { SecretDefinition, Trigger } from "../../common";
 import { ProviderConfig } from "./workflow";
 import { logger } from "../utils/logger";
 
 export interface UsedProvider {
   type: string;
   alias?: string;
+  secretDefinitions?: SecretDefinition[];
 }
 
 export interface UserCodeResult {

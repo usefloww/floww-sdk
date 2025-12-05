@@ -13,6 +13,8 @@ import {
 } from "../api/apiMethods";
 import { UsedProvider } from "./availability";
 import { logger } from "../utils/logger";
+import { SecretManager } from "../secrets/secretManager";
+import { defaultApiClient } from "../api/client";
 
 export async function setupUnavailableProviders(
   unavailableProviders: UsedProvider[],
@@ -115,7 +117,13 @@ async function setupSingleProvider(
   );
 
   try {
-    // Fetch provider type configuration
+    // Check if provider has embedded secretDefinitions (e.g., Secret provider)
+    if (provider.secretDefinitions && provider.secretDefinitions.length > 0) {
+      await setupSecretProvider(provider, namespaceId);
+      return;
+    }
+
+    // Fetch provider type configuration from backend
     const providerType = await logger.task(
       `Fetching ${provider.type} configuration`,
       async () => {
@@ -152,6 +160,81 @@ async function setupSingleProvider(
     logger.error(`Failed to setup ${provider.type}`, error);
     throw error;
   }
+}
+
+async function setupSecretProvider(
+  provider: UsedProvider,
+  namespaceId: string
+): Promise<void> {
+  const secretManager = new SecretManager(defaultApiClient(), namespaceId);
+  const alias = provider.alias || "default";
+
+  const secrets: Record<string, any> = {};
+
+  // Prompt for each secret field
+  for (const def of provider.secretDefinitions!) {
+    console.log(`[Setup Debug] Field: ${def.key}, dataType: ${def.dataType}, type: ${def.type}`);
+    const value = await text({
+      message: def.label,
+      placeholder: def.type === "password" ? "••••••••" : `Enter ${def.key}`,
+      validate: (input: string) => {
+        if (def.required && (!input || input.trim() === "")) {
+          return `${def.label} is required`;
+        }
+
+        // Validate based on dataType
+        if (input && input.trim()) {
+          if (def.dataType === 'number') {
+            const num = Number(input);
+            if (isNaN(num)) {
+              return `${def.label} must be a valid number`;
+            }
+          } else if (def.dataType === 'boolean') {
+            if (!['true', 'false', '1', '0'].includes(input.toLowerCase())) {
+              return `${def.label} must be true/false or 1/0`;
+            }
+          }
+        }
+
+        return;
+      },
+    });
+
+    if (isCancel(value)) {
+      cancel("Operation cancelled.");
+      process.exit(0);
+    }
+
+    // Coerce value based on dataType
+    console.log(`[Setup Debug] Raw value for ${def.key}: "${value}" (type: ${typeof value})`);
+    if (def.dataType === 'number') {
+      const coerced = Number(value);
+      console.log(`[Setup Debug] Coercing to number: ${coerced}`);
+      secrets[def.key] = coerced;
+    } else if (def.dataType === 'boolean') {
+      secrets[def.key] = value.toLowerCase() === 'true' || value === '1';
+    } else {
+      secrets[def.key] = value;
+    }
+    console.log(`[Setup Debug] Final value for ${def.key}:`, secrets[def.key]);
+  }
+
+  console.log(`[Setup Debug] All secrets before saving:`, secrets);
+
+  // Save secrets as JSON to backend
+  await secretManager.setProviderSecrets(provider.type, alias, secrets);
+
+  // Create provider entry (with empty config since secrets are stored separately)
+  await logger.task("Creating provider", async () => {
+    await createProvider({
+      namespace_id: namespaceId,
+      type: provider.type,
+      alias: alias,
+      config: {},
+    });
+  });
+
+  logger.success(`${provider.type} secrets configured successfully`);
 }
 
 async function displayInfoStep(step: ProviderSetupStep): Promise<void> {

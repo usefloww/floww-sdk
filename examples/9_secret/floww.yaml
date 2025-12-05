@@ -1,0 +1,4 @@
+workflowId: 019aed49-26e2-972c-63ae-47cb4882fa03
+name: test-secret
+version: 1.0.0
+entrypoint: main.ts

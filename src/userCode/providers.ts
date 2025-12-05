@@ -1,4 +1,12 @@
-const _usedProviders = new Set<string>();
+import { SecretDefinition } from "../common";
+
+type TrackedProvider = {
+  type: string;
+  alias: string;
+  secretDefinitions?: SecretDefinition[];
+};
+
+const _usedProviders = new Map<string, TrackedProvider>();
 const _registeredTriggers = new Set<any>();
 const _providerConfigs: Map<string, Record<string, any>> = new Map();
 
@@ -9,15 +17,17 @@ export type ProviderMetadata = {
   input: Record<string, any>;
 };
 
-export function trackProviderUsage(providerType: string, alias: string): void {
-  _usedProviders.add(`${providerType}:${alias}`);
+export function trackProviderUsage(
+  providerType: string,
+  alias: string,
+  secretDefinitions?: SecretDefinition[]
+): void {
+  const key = `${providerType}:${alias}`;
+  _usedProviders.set(key, { type: providerType, alias, secretDefinitions });
 }
 
 export function getUsedProviders() {
-  return Array.from(_usedProviders).map((s) => {
-    const [type, alias] = s.split(":");
-    return { type, alias };
-  });
+  return Array.from(_usedProviders.values());
 }
 
 export function setProviderConfigs(configs: Record<string, any>): void {

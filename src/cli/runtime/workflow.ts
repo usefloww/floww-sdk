@@ -1,6 +1,8 @@
 import { ProjectConfig } from "../config/projectConfig";
 import { fetchWorkflow, fetchProviders, Provider } from "../api/apiMethods";
 import { logger } from "../utils/logger";
+import { SecretManager } from "../secrets/secretManager";
+import { defaultApiClient } from "../api/client";
 
 export interface WorkflowConfig {
   workflowId: string;
@@ -52,23 +54,34 @@ export async function resolveWorkflow(
  * Fetch available providers in namespace.
  *
  * Fetches all provider configurations from the backend and prepares them
- * for injection into user code execution context.
+ * for injection into user code execution context. Also fetches secrets
+ * and merges them into provider configs.
  *
  * @param namespaceId - The namespace ID to fetch providers for
  * @returns Map of provider configs keyed by "type:alias"
  * @throws {Error} If provider fetch fails
  */
 export async function fetchProviderConfigs(
-  namespaceId: string,
+  namespaceId: string
 ): Promise<Map<string, ProviderConfig>> {
   try {
     const providers = await fetchProviders();
+    const secretManager = new SecretManager(defaultApiClient(), namespaceId);
 
     const configs = new Map<string, ProviderConfig>();
 
     for (const provider of providers) {
       const key = `${provider.type}:${provider.alias}`;
-      configs.set(key, provider.config);
+
+      // Fetch secrets for this provider and merge with config
+      const secrets = await secretManager.getProviderSecrets(
+        provider.type,
+        provider.alias
+      );
+
+      // Merge config and secrets (secrets take precedence)
+      const mergedConfig = { ...provider.config, ...secrets };
+      configs.set(key, mergedConfig);
 
       logger.debugInfo(`Loaded provider config: ${key}`);
     }
@@ -81,7 +94,7 @@ export async function fetchProviderConfigs(
     logger.warn(
       `Could not fetch provider configs: ${
         error instanceof Error ? error.message : error
-      }`,
+      }`
     );
     logger.plain("   Continuing without backend provider configurations");
 

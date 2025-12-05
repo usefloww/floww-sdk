@@ -159,6 +159,7 @@ export type SecretDefinition = {
   key: string;
   label: string;
   type: "string" | "password";
+  dataType: "string" | "number" | "boolean";
   required: boolean;
 };
 

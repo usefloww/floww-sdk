@@ -131,7 +131,7 @@ export class DevModeOrchestrator {
     );
 
     // Step 3: Execute userspace
-    const result = await logger.debugTask("Loading triggers", async () =>
+    let result = await logger.debugTask("Loading triggers", async () =>
       executeUserCode(
         this.options.entrypoint,
         this.providerConfigs!,
@@ -144,6 +144,21 @@ export class DevModeOrchestrator {
       interactive: true,
       namespaceId: this.workflow.namespaceId,
     });
+
+    // Step 4.25: Re-fetch provider configs and re-execute in case any were just set up
+    this.providerConfigs = await logger.debugTask(
+      "Re-fetching provider configs",
+      async () => await fetchProviderConfigs(this.workflow!.namespaceId),
+    );
+
+    // Re-execute user code with updated configs
+    result = await logger.debugTask("Reloading triggers with updated configs", async () =>
+      executeUserCode(
+        this.options.entrypoint,
+        this.providerConfigs!,
+        this.debugContext,
+      ),
+    );
 
     // Step 4.5: Sync triggers with backend (deploy webhooks to production)
     try {
