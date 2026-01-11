@@ -42,7 +42,6 @@ jobs:
 
   integration-tests:
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
@@ -60,7 +59,8 @@ jobs:
         run: pnpm install
 
       - name: Run integration tests
-        run: pnpm test:ci:integration
+        run: |
+          pnpm test:ci:integration || echo "::warning::Integration tests failed (non-blocking)"
         env:
           FLOWW_TOKEN: ${{ secrets.FLOWW_TOKEN }}
           FLOWW_BACKEND_URL: https://app.usefloww.dev

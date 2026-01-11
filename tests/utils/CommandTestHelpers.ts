@@ -405,7 +405,7 @@ RUN echo ${name} > cache-buster.txt
   
   export default [
     builtin.triggers.onCron({
-      expression: "*/1 * * * * *",
+      expression: "* * * * *",
       handler: (ctx, event) => {
         console.log("Cron triggered", event.scheduledTime);
       },
@@ -420,14 +420,14 @@ RUN echo ${name} > cache-buster.txt
     "version": "1.0.0",
     "type": "module",
     "dependencies": {
-      "floww": "0.0.8"
+      "floww": "*"
     }
   }
   `,
     },
     {
       name: "floww.yaml",
-      content: `workflowId: 61a22650-e47e-42b0-b8a2-5ffbd0af34a0
+      content: `workflowId: b19f3998-3e7b-445c-8c2e-2873b7c93ce2
 name: Test Workflow
 version: 1.0.0
 entrypoint: main.ts
@@ -445,7 +445,7 @@ export const builtin = new Builtin();
 
 export default [
   builtin.triggers.onCron({
-    expression: "*/1 * * * * *",
+    expression: "* * * * *",
     handler: (ctx, event) => {
       console.log("Cron triggered", event.scheduledTime);
     },
@@ -460,14 +460,14 @@ export default [
   "version": "1.0.0",
   "type": "module",
   "dependencies": {
-    "floww": "0.0.8"
+    "floww": "*"
   }
 }
 `,
   },
   {
     name: "floww.yaml",
-    content: `workflowId: 61a22650-e47e-42b0-b8a2-5ffbd0af34a0
+    content: `workflowId: b19f3998-3e7b-445c-8c2e-2873b7c93ce2
 name: Test Workflow
 version: 1.0.0
 entrypoint: main.ts

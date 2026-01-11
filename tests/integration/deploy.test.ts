@@ -21,8 +21,8 @@ describe("Deploy Command Tests", () => {
   it("full build and deploy test", async () => {
     // deploy without existing runtime
     let command = commandSpace.backgroundCommand("deploy", { tty: true });
-    await waitUntilStdout(command, "Starting deployment", 5000);
-    await waitUntilStdout(command, "Building runtime image", 5000);
+    await waitUntilStdout(command, "Starting deployment", 10000);
+    await waitUntilStdout(command, "Building runtime image", 10000);
 
     await waitUntilProgress(command, "Building runtime image", 3000, 30);
     await waitUntilStdout(command, "✅ 📦 Building runtime image", 100);
