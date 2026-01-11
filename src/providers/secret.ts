@@ -79,20 +79,26 @@ export class Secret<T extends ZodRawShape> extends BaseProvider {
   }
 
   private getDataType(zodType: ZodTypeAny): "string" | "number" | "boolean" {
+    // Use type assertion to access internal Zod properties (cast through unknown)
+    const def = zodType._def as unknown as Record<string, unknown>;
+
     // Check the type property (works with current Zod versions)
-    const type = (zodType as any).type || (zodType as any).def?.type;
+    const type = (zodType as unknown as Record<string, unknown>).type || def?.type;
 
     if (type === 'number') return 'number';
     if (type === 'boolean') return 'boolean';
 
     // Also check legacy _def.typeName for older Zod versions
-    const typeName = zodType._def?.typeName;
+    const typeName = def?.typeName as string | undefined;
     if (typeName === 'ZodNumber') return 'number';
     if (typeName === 'ZodBoolean') return 'boolean';
 
     // Handle wrapped types (optional, nullable, default)
     if (typeName === 'ZodOptional' || typeName === 'ZodNullable' || typeName === 'ZodDefault') {
-      return this.getDataType(zodType._def.innerType);
+      const innerType = def?.innerType as ZodTypeAny | undefined;
+      if (innerType) {
+        return this.getDataType(innerType);
+      }
     }
 
     return 'string';

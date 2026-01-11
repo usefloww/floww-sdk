@@ -26,6 +26,7 @@ export class Anthropic extends BaseAIProvider {
       key: "apiKey",
       label: "Anthropic API Key",
       type: "password" as const,
+      dataType: "string" as const,
       required: true,
     },
   ];

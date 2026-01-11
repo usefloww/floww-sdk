@@ -26,6 +26,7 @@ export class GoogleAI extends BaseAIProvider {
       key: "apiKey",
       label: "Google AI API Key",
       type: "password" as const,
+      dataType: "string" as const,
       required: true,
     },
   ];

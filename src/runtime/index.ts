@@ -121,7 +121,7 @@ export async function reportExecutionStatus(
  * Base event interface with type discriminator
  */
 export interface BaseEvent {
-  type: "invoke_trigger" | "get_definitions";
+  type: "invoke_trigger" | "get_definitions" | "validate_code";
 }
 
 /**
@@ -222,6 +222,35 @@ export interface GetDefinitionsResult {
     message: string;
     stack?: string;
   };
+}
+
+/**
+ * Validate code event payload
+ *
+ * Requests TypeScript validation of user code without executing it
+ */
+export interface ValidateCodeEvent extends BaseEvent {
+  type: "validate_code";
+
+  // User code to validate
+  userCode: {
+    files: Record<string, string>;
+    entrypoint: string;
+  };
+}
+
+/**
+ * Validate code result
+ */
+export interface ValidateCodeResult {
+  success: boolean;
+  errors: Array<{
+    file: string;
+    line: number;
+    column: number;
+    message: string;
+    code: string; // e.g., "TS2339"
+  }>;
 }
 
 /**
@@ -462,6 +491,204 @@ export async function invokeTrigger(
 }
 
 /**
+ * Validate TypeScript code for compilation errors
+ *
+ * This function uses the TypeScript compiler to perform full type checking
+ * on user code, returning any errors found.
+ *
+ * @param event - The validate code event payload
+ * @returns Validation result with any errors
+ */
+export async function handleValidateCode(
+  event: ValidateCodeEvent
+): Promise<ValidateCodeResult> {
+  try {
+    console.log("🔍 Floww Runtime - Validating TypeScript code");
+
+    if (!event.userCode) {
+      throw new Error("No userCode provided in event payload");
+    }
+
+    const files = event.userCode.files;
+    if (!files) {
+      throw new Error('userCode must have a "files" property with the code files');
+    }
+
+    // Import modules
+    const ts = await import("typescript");
+    const path = await import("path");
+    const fs = await import("fs");
+
+    // Find the floww package types
+    let flowwTypesPath: string | undefined;
+    try {
+      // Try to resolve floww package
+      const flowwPath = require.resolve("floww");
+      const flowwDir = path.dirname(flowwPath);
+      const dtsPath = path.join(flowwDir, "index.d.ts");
+      if (fs.existsSync(dtsPath)) {
+        flowwTypesPath = dtsPath;
+      }
+    } catch {
+      // floww not installed as package, try relative path
+      const localDtsPath = path.join(__dirname, "..", "index.d.ts");
+      if (fs.existsSync(localDtsPath)) {
+        flowwTypesPath = localDtsPath;
+      }
+    }
+
+    // Create a map of file names to content
+    const sourceFiles = new Map<string, string>();
+    for (const [name, content] of Object.entries(files)) {
+      sourceFiles.set(name, content);
+    }
+
+    // Create compiler options
+    const compilerOptions: import("typescript").CompilerOptions = {
+      target: ts.ScriptTarget.ES2022,
+      module: ts.ModuleKind.ESNext,
+      moduleResolution: ts.ModuleResolutionKind.NodeNext,
+      strict: true,
+      noEmit: true,
+      skipLibCheck: true,
+      esModuleInterop: true,
+      allowSyntheticDefaultImports: true,
+    };
+
+    // Create a custom compiler host
+    const host: import("typescript").CompilerHost = {
+      getSourceFile: (
+        fileName: string,
+        languageVersion: import("typescript").ScriptTarget
+      ) => {
+        // Check virtual files first
+        if (sourceFiles.has(fileName)) {
+          return ts.createSourceFile(
+            fileName,
+            sourceFiles.get(fileName)!,
+            languageVersion
+          );
+        }
+        // Try to read from filesystem (for lib files and floww types)
+        try {
+          const content = fs.readFileSync(fileName, "utf8");
+          return ts.createSourceFile(fileName, content, languageVersion);
+        } catch {
+          return undefined;
+        }
+      },
+      getDefaultLibFileName: (options: import("typescript").CompilerOptions) =>
+        ts.getDefaultLibFilePath(options),
+      writeFile: () => {},
+      getCurrentDirectory: () => process.cwd(),
+      getCanonicalFileName: (fileName: string) => fileName.toLowerCase(),
+      useCaseSensitiveFileNames: () => false,
+      getNewLine: () => "\n",
+      fileExists: (fileName: string) => {
+        if (sourceFiles.has(fileName)) return true;
+        try {
+          return fs.existsSync(fileName);
+        } catch {
+          return false;
+        }
+      },
+      readFile: (fileName: string) => {
+        if (sourceFiles.has(fileName)) {
+          return sourceFiles.get(fileName);
+        }
+        try {
+          return fs.readFileSync(fileName, "utf8");
+        } catch {
+          return undefined;
+        }
+      },
+      resolveModuleNames: (
+        moduleNames: string[],
+        containingFile: string
+      ): (import("typescript").ResolvedModule | undefined)[] => {
+        return moduleNames.map((moduleName: string) => {
+          // Handle floww imports
+          if (moduleName === "floww" || moduleName.startsWith("floww/")) {
+            if (flowwTypesPath) {
+              return {
+                resolvedFileName: flowwTypesPath,
+                isExternalLibraryImport: true,
+              };
+            }
+            // Return undefined to skip floww type checking if types not found
+            return undefined;
+          }
+          // For other modules, use TypeScript's resolution
+          const result = ts.resolveModuleName(
+            moduleName,
+            containingFile,
+            compilerOptions,
+            host
+          );
+          return result.resolvedModule;
+        });
+      },
+    };
+
+    // Get root file names from the source files
+    const rootNames = Array.from(sourceFiles.keys());
+
+    // Create program
+    const program = ts.createProgram(rootNames, compilerOptions, host);
+
+    // Get diagnostics (only for user files, not lib files)
+    const allDiagnostics = ts.getPreEmitDiagnostics(program);
+    const userDiagnostics = allDiagnostics.filter((d) => {
+      if (!d.file) return true; // Include diagnostics without file info
+      return sourceFiles.has(d.file.fileName);
+    });
+
+    const errors = userDiagnostics.map((d) => {
+      let file = "unknown";
+      let line = 0;
+      let column = 0;
+
+      if (d.file && d.start !== undefined) {
+        file = d.file.fileName;
+        const pos = ts.getLineAndCharacterOfPosition(d.file, d.start);
+        line = pos.line + 1;
+        column = pos.character + 1;
+      }
+
+      return {
+        file,
+        line,
+        column,
+        message: ts.flattenDiagnosticMessageText(d.messageText, "\n"),
+        code: `TS${d.code}`,
+      };
+    });
+
+    console.log(`✅ Validation complete: ${errors.length} error(s) found`);
+
+    return {
+      success: errors.length === 0,
+      errors,
+    };
+  } catch (error: any) {
+    console.error("❌ Code validation failed:", error);
+
+    return {
+      success: false,
+      errors: [
+        {
+          file: "unknown",
+          line: 0,
+          column: 0,
+          message: error.message,
+          code: "VALIDATION_ERROR",
+        },
+      ],
+    };
+  }
+}
+
+/**
  * Handle any runtime event by dispatching to the appropriate handler
  *
  * This is the main entry point for all runtime events. It routes events
@@ -471,13 +698,15 @@ export async function invokeTrigger(
  * @returns The appropriate result based on the event type
  */
 export async function handleEvent(
-  event: InvokeTriggerEvent | GetDefinitionsEvent
-): Promise<InvokeTriggerResult | GetDefinitionsResult> {
+  event: InvokeTriggerEvent | GetDefinitionsEvent | ValidateCodeEvent
+): Promise<InvokeTriggerResult | GetDefinitionsResult | ValidateCodeResult> {
   switch (event.type) {
     case "invoke_trigger":
       return await invokeTrigger(event);
     case "get_definitions":
       return await handleGetDefinitions(event);
+    case "validate_code":
+      return await handleValidateCode(event);
     default:
       throw new Error(`Unknown event type: ${(event as any).type}`);
   }

@@ -28,6 +28,7 @@ export class OpenAI extends BaseAIProvider {
       key: "apiKey",
       label: "OpenAI API Key",
       type: "password" as const,
+      dataType: "string" as const,
       required: true,
     },
   ];
