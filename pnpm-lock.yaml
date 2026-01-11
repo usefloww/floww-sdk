@@ -127,27 +127,6 @@ importers:
         specifier: ^4.0.8
         version: 4.0.8(@types/node@24.10.0)(msw@2.12.0(@types/node@24.10.0)(typescript@5.9.3))(tsx@4.20.6)
 
-  examples/9_secret:
-    devDependencies:
-      floww:
-        specifier: file:../../
-        version: file:(@types/node@24.10.0)(typescript@5.9.3)
-      tsx:
-        specifier: ^4.20.6
-        version: 4.20.6
-
-  examples/test_nichj0:
-    dependencies:
-      floww:
-        specifier: 0.0.8
-        version: 0.0.8(@types/node@24.10.0)(typescript@5.9.3)
-
-  examples/test_yxzdxc:
-    dependencies:
-      floww:
-        specifier: 0.0.8
-        version: 0.0.8(@types/node@24.10.0)(typescript@5.9.3)
-
 packages:
 
   '@ai-sdk/anthropic@2.0.42':
@@ -1234,18 +1213,6 @@ packages:
   fix-dts-default-cjs-exports@1.0.1:
     resolution: {integrity: sha512-pVIECanWFC61Hzl2+oOCtoJ3F17kglZC/6N94eRWycFgBH35hHx0Li604ZIzhseh97mf2p0cv7vVrOZGoqhlEg==}
 
-  floww@0.0.8:
-    resolution: {integrity: sha512-d4FrXtuK3+SusLM8TPtbMB0pL9j2wu98ydZMnmCIHuexS4vVyb/t2S4/MgVVuN0v24hYcNGa7//FjclXOMeIPQ==}
-    hasBin: true
-    peerDependencies:
-      typescript: '>=5.0.0'
-
-  'floww@file:':
-    resolution: {directory: '', type: directory}
-    hasBin: true
-    peerDependencies:
-      typescript: '>=5.0.0'
-
   follow-redirects@1.15.11:
     resolution: {integrity: sha512-deG2P0JfjrTxl50XGCDyfI97ZGVCxIpfKYmfyrQ54n5FO/0gfIES8C/Psl6kWVDolizcaaxZJnTS0QSMxvnsBQ==}
     engines: {node: '>=4.0'}
@@ -2176,36 +2143,16 @@ packages:
   yoga-layout@3.2.1:
     resolution: {integrity: sha512-0LPOt3AxKqMdFBZA3HBAt/t/8vIKq7VaQYbuA8WxCgung+p9TVyKRYdpvCb80HcdTN2NkbIKbhNwKUfm3tQywQ==}
 
-  zod@3.25.76:
-    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
-
   zod@4.1.12:
     resolution: {integrity: sha512-JInaHOamG8pt5+Ey8kGmdcAcg3OL9reK8ltczgHTAwNhMys/6ThXHityHxVV2p3fkw/c+MAvBHFVYHFZDmjMCQ==}
 
 snapshots:
-
-  '@ai-sdk/anthropic@2.0.42(zod@3.25.76)':
-    dependencies:
-      '@ai-sdk/provider': 2.0.0
-      '@ai-sdk/provider-utils': 3.0.16(zod@3.25.76)
-      zod: 3.25.76
 
   '@ai-sdk/anthropic@2.0.42(zod@4.1.12)':
     dependencies:
       '@ai-sdk/provider': 2.0.0
       '@ai-sdk/provider-utils': 3.0.16(zod@4.1.12)
       zod: 4.1.12
-
-  '@ai-sdk/gateway@2.0.0-beta.47(zod@3.25.76)':
-    dependencies:
-      '@ai-sdk/provider': 3.0.0-beta.13
-      '@ai-sdk/provider-utils': 4.0.0-beta.28(zod@3.25.76)
-      '@vercel/oidc': 3.0.3
-      zod: 3.25.76
-    transitivePeerDependencies:
-      - '@valibot/to-json-schema'
-      - arktype
-      - effect
 
   '@ai-sdk/gateway@2.0.0-beta.47(zod@4.1.12)':
     dependencies:
@@ -2218,23 +2165,11 @@ snapshots:
       - arktype
       - effect
 
-  '@ai-sdk/google@2.0.29(zod@3.25.76)':
-    dependencies:
-      '@ai-sdk/provider': 2.0.0
-      '@ai-sdk/provider-utils': 3.0.16(zod@3.25.76)
-      zod: 3.25.76
-
   '@ai-sdk/google@2.0.29(zod@4.1.12)':
     dependencies:
       '@ai-sdk/provider': 2.0.0
       '@ai-sdk/provider-utils': 3.0.16(zod@4.1.12)
       zod: 4.1.12
-
-  '@ai-sdk/openai@2.0.64(zod@3.25.76)':
-    dependencies:
-      '@ai-sdk/provider': 2.0.0
-      '@ai-sdk/provider-utils': 3.0.16(zod@3.25.76)
-      zod: 3.25.76
 
   '@ai-sdk/openai@2.0.64(zod@4.1.12)':
     dependencies:
@@ -2242,26 +2177,12 @@ snapshots:
       '@ai-sdk/provider-utils': 3.0.16(zod@4.1.12)
       zod: 4.1.12
 
-  '@ai-sdk/provider-utils@3.0.16(zod@3.25.76)':
-    dependencies:
-      '@ai-sdk/provider': 2.0.0
-      '@standard-schema/spec': 1.0.0
-      eventsource-parser: 3.0.6
-      zod: 3.25.76
-
   '@ai-sdk/provider-utils@3.0.16(zod@4.1.12)':
     dependencies:
       '@ai-sdk/provider': 2.0.0
       '@standard-schema/spec': 1.0.0
       eventsource-parser: 3.0.6
       zod: 4.1.12
-
-  '@ai-sdk/provider-utils@4.0.0-beta.28(zod@3.25.76)':
-    dependencies:
-      '@ai-sdk/provider': 3.0.0-beta.13
-      '@standard-schema/spec': 1.0.0
-      eventsource-parser: 3.0.6
-      zod: 3.25.76
 
   '@ai-sdk/provider-utils@4.0.0-beta.28(zod@4.1.12)':
     dependencies:
@@ -2823,18 +2744,6 @@ snapshots:
 
   acorn@8.15.0: {}
 
-  ai@6.0.0-beta.88(zod@3.25.76):
-    dependencies:
-      '@ai-sdk/gateway': 2.0.0-beta.47(zod@3.25.76)
-      '@ai-sdk/provider': 3.0.0-beta.13
-      '@ai-sdk/provider-utils': 4.0.0-beta.28(zod@3.25.76)
-      '@opentelemetry/api': 1.9.0
-      zod: 3.25.76
-    transitivePeerDependencies:
-      - '@valibot/to-json-schema'
-      - arktype
-      - effect
-
   ai@6.0.0-beta.88(zod@4.1.12):
     dependencies:
       '@ai-sdk/gateway': 2.0.0-beta.47(zod@4.1.12)
@@ -3192,92 +3101,6 @@ snapshots:
       magic-string: 0.30.21
       mlly: 1.8.0
       rollup: 4.53.1
-
-  floww@0.0.8(@types/node@24.10.0)(typescript@5.9.3):
-    dependencies:
-      '@ai-sdk/anthropic': 2.0.42(zod@3.25.76)
-      '@ai-sdk/google': 2.0.29(zod@3.25.76)
-      '@ai-sdk/openai': 2.0.64(zod@3.25.76)
-      '@clack/core': 0.5.0
-      '@clack/prompts': 0.11.0
-      '@lydell/node-pty': 1.1.0
-      '@slack/web-api': 7.12.0
-      '@types/inquirer': 9.0.9
-      '@types/jsonwebtoken': 9.0.10
-      ai: 6.0.0-beta.88(zod@3.25.76)
-      centrifuge: 5.5.2
-      chalk: 5.6.2
-      chokidar: 4.0.3
-      cli-table3: 0.6.5
-      commander: 14.0.2
-      consola: 3.4.2
-      execa: 9.6.0
-      fastify: 5.6.1
-      ink: 6.4.0(react@19.2.0)
-      inquirer: 12.10.0(@types/node@24.10.0)
-      js-yaml: 4.1.0
-      jsonwebtoken: 9.0.2
-      log-symbols: 7.0.1
-      node-cron: 4.2.1
-      node-fetch: 3.3.2
-      open: 10.2.0
-      pino-pretty: 13.1.2
-      react: 19.2.0
-      typescript: 5.9.3
-      zod: 3.25.76
-    transitivePeerDependencies:
-      - '@types/node'
-      - '@types/react'
-      - '@valibot/to-json-schema'
-      - arktype
-      - bufferutil
-      - debug
-      - effect
-      - react-devtools-core
-      - utf-8-validate
-
-  floww@file:(@types/node@24.10.0)(typescript@5.9.3):
-    dependencies:
-      '@ai-sdk/anthropic': 2.0.42(zod@4.1.12)
-      '@ai-sdk/google': 2.0.29(zod@4.1.12)
-      '@ai-sdk/openai': 2.0.64(zod@4.1.12)
-      '@clack/core': 0.5.0
-      '@clack/prompts': 0.11.0
-      '@lydell/node-pty': 1.1.0
-      '@slack/web-api': 7.12.0
-      '@types/inquirer': 9.0.9
-      '@types/jsonwebtoken': 9.0.10
-      ai: 6.0.0-beta.88(zod@4.1.12)
-      centrifuge: 5.5.2
-      chalk: 5.6.2
-      chokidar: 4.0.3
-      cli-table3: 0.6.5
-      commander: 14.0.2
-      consola: 3.4.2
-      execa: 9.6.0
-      fastify: 5.6.1
-      ink: 6.4.0(react@19.2.0)
-      inquirer: 12.10.0(@types/node@24.10.0)
-      js-yaml: 4.1.0
-      jsonwebtoken: 9.0.2
-      log-symbols: 7.0.1
-      node-cron: 4.2.1
-      node-fetch: 3.3.2
-      open: 10.2.0
-      pino-pretty: 13.1.2
-      react: 19.2.0
-      typescript: 5.9.3
-      zod: 4.1.12
-    transitivePeerDependencies:
-      - '@types/node'
-      - '@types/react'
-      - '@valibot/to-json-schema'
-      - arktype
-      - bufferutil
-      - debug
-      - effect
-      - react-devtools-core
-      - utf-8-validate
 
   follow-redirects@1.15.11: {}
 
@@ -4164,7 +3987,5 @@ snapshots:
   yoctocolors@2.1.2: {}
 
   yoga-layout@3.2.1: {}
-
-  zod@3.25.76: {}
 
   zod@4.1.12: {}

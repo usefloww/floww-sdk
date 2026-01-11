@@ -133,11 +133,19 @@ async function setupSingleProvider(
 
     // Collect configuration values
     const config: Record<string, any> = {};
+    const webhookSteps: ProviderSetupStep[] = [];
 
     for (const step of providerType.setup_steps) {
       if (step.type === "info") {
         // Display info step without collecting a value
         await displayInfoStep(step);
+      } else if (step.type === "webhook") {
+        // Store webhook steps to display
+        webhookSteps.push(step);
+        // Include default webhook URL in config if provided
+        if (step.default) {
+          config[step.alias] = step.default;
+        }
       } else {
         // Collect value for input steps
         const value = await promptForSetupStep(step);
@@ -145,9 +153,24 @@ async function setupSingleProvider(
       }
     }
 
+    // Display pre-generated webhook URLs if any
+    if (webhookSteps.length > 0 && webhookSteps.some((s) => s.default)) {
+      logger.plain("\n📋 Webhook URLs for this provider:\n");
+      for (const webhookStep of webhookSteps) {
+        if (webhookStep.default) {
+          logger.plain(`🔗 ${webhookStep.title}:`);
+          if (webhookStep.description) {
+            logger.plain(`   ${webhookStep.description}`);
+          }
+          logger.plain(`   ${webhookStep.default}`);
+          logger.plain("");
+        }
+      }
+    }
+
     // Create the provider
-    await logger.task("Creating provider", async () => {
-      await createProvider({
+    const createdProvider = await logger.task("Creating provider", async () => {
+      return await createProvider({
         namespace_id: namespaceId,
         type: provider.type,
         alias: provider.alias || provider.type,

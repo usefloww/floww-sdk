@@ -4,6 +4,7 @@ import {
   fetchNamespaces,
 } from "../api/apiMethods";
 import { logger } from "./logger";
+import { getErrorMessage } from "../api/errors";
 
 // Re-export createWorkflow from API methods for backward compatibility
 export { apiCreateWorkflow as createWorkflow };
@@ -97,16 +98,22 @@ export async function setupWorkflow(
     description = await logger.text("Description (optional):", "", "");
     if (!description) description = undefined;
 
-    selectedWorkflow = await logger.task("Creating new workflow", async () => {
-      return await apiCreateWorkflow(
-        workflowName,
-        selectedNamespaceId,
-        description,
-      );
-    });
-    workflowId = selectedWorkflow.id;
-    isNew = true;
-    logger.success(`Created workflow: ${selectedWorkflow.name}`);
+    try {
+      selectedWorkflow = await logger.task("Creating new workflow", async () => {
+        return await apiCreateWorkflow(
+          workflowName,
+          selectedNamespaceId,
+          description,
+        );
+      });
+      workflowId = selectedWorkflow.id;
+      isNew = true;
+      logger.success(`Created workflow: ${selectedWorkflow.name}`);
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      logger.error(errorMessage);
+      throw error;
+    }
   }
 
   if (!workflowId || !selectedWorkflow) {

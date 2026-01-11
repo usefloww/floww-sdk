@@ -13,6 +13,7 @@ import { fetchNamespaces } from "../api/apiMethods";
 import { logger } from "../utils/logger";
 import { setupWorkflow } from "../utils/promptUtils";
 import { getValidAuth } from "../auth/tokenUtils";
+import { getErrorMessage } from "../api/errors";
 
 interface InitOptions {
   force?: boolean;
@@ -265,7 +266,8 @@ Next steps:
 
     return workflowId;
   } catch (error) {
-    logger.error("Failed to initialize project", error);
+    const errorMessage = getErrorMessage(error);
+    logger.error(errorMessage);
     if (options.silent) {
       throw error;
     }

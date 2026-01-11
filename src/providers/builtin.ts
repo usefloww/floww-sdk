@@ -1,6 +1,8 @@
 import {
   CronTrigger,
   CronTriggerArgs,
+  ManualTrigger,
+  ManualTriggerArgs,
   WebhookTrigger,
   WebhookTriggerArgs,
 } from "../common";
@@ -43,6 +45,27 @@ export class Builtin extends BaseProvider {
         alias: this.credentialName,
         triggerType: "onWebhook",
         input: { path: args.path, method: args.method || "POST" },
+      });
+    },
+    onManual: <TInput = any>(
+      args: ManualTriggerArgs<TInput>,
+    ): ManualTrigger<TInput> => {
+      const trigger = {
+        type: "manual",
+        name: args.name,
+        description: args.description,
+        inputSchema: args.inputSchema,
+        handler: args.handler,
+      } as ManualTrigger<TInput>;
+      return registerTrigger(trigger, {
+        type: this.providerType,
+        alias: this.credentialName,
+        triggerType: "onManual",
+        input: {
+          name: args.name,
+          description: args.description,
+          input_schema: args.inputSchema,
+        },
       });
     },
   };

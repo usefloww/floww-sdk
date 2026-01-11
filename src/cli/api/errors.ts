@@ -66,3 +66,28 @@ export class ApiError extends ClientError {
     super(message, statusCode, details);
   }
 }
+
+/**
+ * Extract a user-friendly error message from an API error
+ * Prioritizes detailed error descriptions from the API response
+ */
+export function getErrorMessage(error: unknown): string {
+  if (error instanceof ClientError) {
+    // Check for detailed error message in details.detail.description
+    if (error.details?.detail?.description) {
+      return error.details.detail.description;
+    }
+    // Fall back to title if available
+    if (error.details?.detail?.title) {
+      return error.details.detail.title;
+    }
+    // Use the error message if no detailed description
+    return error.message;
+  }
+  
+  if (error instanceof Error) {
+    return error.message;
+  }
+  
+  return String(error);
+}

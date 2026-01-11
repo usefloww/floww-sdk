@@ -153,6 +153,34 @@ export type RealtimeTriggerArgs<TPayload = any> = {
   teardown?: (ctx: RealtimeTeardownContext) => Promise<void> | void;
 };
 
+// Manual-specific trigger
+export type ManualEvent<TInput = any> = BaseEvent & {
+  manually_triggered: boolean;
+  triggered_by: string;
+  input_data: TInput;
+};
+
+export type ManualContext = BaseContext & {
+  // Add manual-specific context utilities here
+};
+
+export interface ManualTrigger<TInput = any>
+  extends Trigger<ManualEvent<TInput>, ManualContext> {
+  type: "manual";
+  handler: Handler<ManualEvent<TInput>, ManualContext>;
+  name: string;
+  description?: string;
+  inputSchema?: Record<string, any>; // JSON Schema for input validation
+}
+
+// Manual trigger args
+export type ManualTriggerArgs<TInput = any> = {
+  name: string;
+  description?: string;
+  inputSchema?: Record<string, any>;
+  handler: Handler<ManualEvent<TInput>, ManualContext>;
+};
+
 export interface Action {}
 
 export type SecretDefinition = {

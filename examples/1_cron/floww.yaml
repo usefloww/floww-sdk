@@ -1,4 +1,3 @@
-workflowId: 7e4f7d4d-2912-4565-8f07-a90e19f60072
 name: Test cron
 version: 1.0.0
 entrypoint: main.ts
@@ -6,3 +5,4 @@ build:
   type: docker
   context: ../..
   dockerfile: ../Dockerfile
+workflowId: 019bad13-0edf-a0eb-bb5d-c581f9c4cba4
