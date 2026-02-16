@@ -172,6 +172,16 @@ jobs:
           echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> $GITHUB_ENV
           echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> $GITHUB_ENV
 
+      - name: Run Staging Migrations
+        env:
+          DOCKER_HOST: ssh://${{ vars.SERVER_USER }}@${{ vars.SERVER_HOST }}
+          IMAGE_TAG: sha-${{ github.sha }}
+        run: |
+          docker run --rm \
+            -e DATABASE_URL="postgresql://postgres:${{ secrets.DATABASE_PASSWORD }}@floww.cklmackcedxs.us-east-1.rds.amazonaws.com:5432/postgres_staging?sslmode=require" \
+            ghcr.io/usefloww/floww:${IMAGE_TAG} \
+            node server/db/migrate.mjs
+
       - name: Deploy to Staging Swarm
         env:
           DOCKER_HOST: ssh://${{ vars.SERVER_USER }}@${{ vars.SERVER_HOST }}
@@ -216,6 +226,16 @@ jobs:
           echo "${{ secrets.SERVER_PRIVATE_KEY }}" | ssh-add -
           echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> $GITHUB_ENV
           echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> $GITHUB_ENV
+
+      - name: Run Production Migrations
+        env:
+          DOCKER_HOST: ssh://${{ vars.SERVER_USER }}@${{ vars.SERVER_HOST }}
+          IMAGE_TAG: sha-${{ github.sha }}
+        run: |
+          docker run --rm \
+            -e DATABASE_URL="postgresql://postgres:${{ secrets.DATABASE_PASSWORD }}@floww.cklmackcedxs.us-east-1.rds.amazonaws.com:5432/postgres?sslmode=require" \
+            ghcr.io/usefloww/floww:${IMAGE_TAG} \
+            node server/db/migrate.mjs
 
       - name: Deploy to Production Swarm
         env:

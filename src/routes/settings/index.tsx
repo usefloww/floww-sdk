@@ -123,9 +123,10 @@ function BillingSection({ organizationId }: { organizationId: string }) {
   });
 
   // Map the server function response to the expected format
+  // Backend returns UPPERCASE tiers/statuses (e.g. 'TEAM', 'ACTIVE') — normalize to lowercase
   const subscription: SubscriptionData | undefined = subscriptionData ? {
-    tier: subscriptionData.subscription.tier as "free" | "hobby" | "team",
-    status: subscriptionData.subscription.status as "active" | "past_due" | "canceled" | "incomplete",
+    tier: subscriptionData.subscription.tier.toLowerCase() as "free" | "hobby" | "team",
+    status: subscriptionData.subscription.status.toLowerCase() as "active" | "past_due" | "canceled" | "incomplete",
     current_period_end: subscriptionData.subscription.currentPeriodEnd,
     grace_period_ends_at: null,
     cancel_at_period_end: subscriptionData.subscription.cancelAtPeriodEnd,
@@ -1201,9 +1202,10 @@ function OrganizationSettings() {
   });
 
   // Map the server function response to the expected format
+  // Backend returns UPPERCASE tiers/statuses — normalize to lowercase
   const subscription: SubscriptionData | undefined = subscriptionRaw ? {
-    tier: subscriptionRaw.subscription.tier as "free" | "hobby" | "team",
-    status: subscriptionRaw.subscription.status as "active" | "past_due" | "canceled" | "incomplete",
+    tier: subscriptionRaw.subscription.tier.toLowerCase() as "free" | "hobby" | "team",
+    status: subscriptionRaw.subscription.status.toLowerCase() as "active" | "past_due" | "canceled" | "incomplete",
     current_period_end: subscriptionRaw.subscription.currentPeriodEnd,
     grace_period_ends_at: null,
     cancel_at_period_end: subscriptionRaw.subscription.cancelAtPeriodEnd,

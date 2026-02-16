@@ -89,8 +89,9 @@ function UpgradePage() {
   });
 
   // Map the server function response to the expected format
+  // Backend returns UPPERCASE tiers — normalize to lowercase
   const subscription: SubscriptionData | undefined = subscriptionData ? {
-    tier: subscriptionData.subscription.tier as "free" | "hobby" | "team",
+    tier: subscriptionData.subscription.tier.toLowerCase() as "free" | "hobby" | "team",
     status: subscriptionData.subscription.status,
     has_active_pro: subscriptionData.plan.isPaid,
   } : undefined;

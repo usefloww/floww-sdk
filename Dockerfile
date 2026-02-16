@@ -44,6 +44,10 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 
+# Copy migration files for running migrations via: node server/db/migrate.mjs
+COPY --from=builder /app/server/db/migrations ./server/db/migrations
+COPY --from=builder /app/server/db/migrate.mjs ./server/db/migrate.mjs
+
 # Set production environment
 ENV NODE_ENV=production
 
