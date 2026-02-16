@@ -6,7 +6,7 @@
   </a>
 </p>
 
-# Floww Dashboard
+# Floww
 
 **The complete Floww platform - monorepo containing the web dashboard, API server, and Floww SDK.**
 
@@ -132,7 +132,7 @@ Join our Discord community to get help, share workflows, and connect with other 
 ## Project Structure
 
 ```
-floww-dashboard/
+floww/
 ├── .claude-plugin/         # Claude Code plugin metadata
 │   ├── plugin.json         # Plugin manifest
 │   └── marketplace.json    # Marketplace configuration

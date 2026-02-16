@@ -3,7 +3,7 @@ version: "3.8"
 services:
   # Centrifugo WebSocket server
   centrifugo:
-    image: "ghcr.io/usefloww/floww-dashboard-centrifugo:${IMAGE_TAG:-latest}"
+    image: "ghcr.io/usefloww/floww-centrifugo:${IMAGE_TAG:-latest}"
 
     networks:
       - traefik-staging-net
@@ -15,8 +15,8 @@ services:
       - CENTRIFUGO_API_KEY_FILE=/run/secrets/staging_backend_centrifugo_api_key
       - CENTRIFUGO_ADMIN_ENABLED=true
       - CENTRIFUGO_ADMIN_INSECURE=true
-      - CENTRIFUGO_CONNECT_PROXY_ENDPOINT=http://floww-dashboard-staging_app:3000/centrifugo/connect
-      - CENTRIFUGO_SUBSCRIBE_PROXY_ENDPOINT=http://floww-dashboard-staging_app:3000/centrifugo/subscribe
+      - CENTRIFUGO_CONNECT_PROXY_ENDPOINT=http://floww-staging_app:3000/centrifugo/connect
+      - CENTRIFUGO_SUBSCRIBE_PROXY_ENDPOINT=http://floww-staging_app:3000/centrifugo/subscribe
       - CENTRIFUGO_ALLOWED_ORIGINS=["https://app.flow.toondn.app"]
       - CENTRIFUGO_ALLOW_ANONYMOUS=true
 
@@ -43,10 +43,10 @@ services:
           memory: 256M
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.floww-dashboard-centrifugo-staging.rule=Host(`app.flow.toondn.app`) && PathPrefix(`/ws`)"
-        - "traefik.http.routers.floww-dashboard-centrifugo-staging.entrypoints=websecure"
-        - "traefik.http.routers.floww-dashboard-centrifugo-staging.tls.certresolver=myresolver"
-        - "traefik.http.services.floww-dashboard-centrifugo-staging-service.loadbalancer.server.port=8000"
+        - "traefik.http.routers.floww-centrifugo-staging.rule=Host(`app.flow.toondn.app`) && PathPrefix(`/ws`)"
+        - "traefik.http.routers.floww-centrifugo-staging.entrypoints=websecure"
+        - "traefik.http.routers.floww-centrifugo-staging.tls.certresolver=myresolver"
+        - "traefik.http.services.floww-centrifugo-staging-service.loadbalancer.server.port=8000"
 
     ulimits:
       nofile:
@@ -55,7 +55,7 @@ services:
 
   # Main web application
   app:
-    image: ${REGISTRY:-ghcr.io}/usefloww/floww-dashboard:${IMAGE_TAG:-latest}
+    image: ${REGISTRY:-ghcr.io}/usefloww/floww:${IMAGE_TAG:-latest}
 
     networks:
       - traefik-staging-net
@@ -90,7 +90,7 @@ services:
       - DATABASE_HOST=floww.cklmackcedxs.us-east-1.rds.amazonaws.com
       - DATABASE_PORT=5432
       - DATABASE_NAME=postgres_staging
-      - CENTRIFUGO_HOST=floww-dashboard-staging_centrifugo
+      - CENTRIFUGO_HOST=floww-staging_centrifugo
       - CENTRIFUGO_PORT=8000
       - CENTRIFUGO_PUBLIC_URL=https://app.flow.toondn.app
       - BACKEND_URL=https://app.flow.toondn.app
@@ -148,10 +148,10 @@ services:
           memory: 256M
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.floww-dashboard-staging.rule=Host(`app.flow.toondn.app`) && !PathPrefix(`/ws`)"
-        - "traefik.http.routers.floww-dashboard-staging.entrypoints=websecure"
-        - "traefik.http.routers.floww-dashboard-staging.tls.certresolver=myresolver"
-        - "traefik.http.services.floww-dashboard-staging.loadbalancer.server.port=3000"
+        - "traefik.http.routers.floww-staging.rule=Host(`app.flow.toondn.app`) && !PathPrefix(`/ws`)"
+        - "traefik.http.routers.floww-staging.entrypoints=websecure"
+        - "traefik.http.routers.floww-staging.tls.certresolver=myresolver"
+        - "traefik.http.services.floww-staging.loadbalancer.server.port=3000"
 
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]

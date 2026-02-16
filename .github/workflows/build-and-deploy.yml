@@ -8,7 +8,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: usefloww/floww-dashboard
+  IMAGE_NAME: usefloww/floww
 
 jobs:
   test:
@@ -178,14 +178,14 @@ jobs:
           IMAGE_TAG: sha-${{ github.sha }}
         run: |
           set -o pipefail
-          output=$(docker stack deploy -c stacks/staging.yml floww-dashboard-staging --with-registry-auth --detach=false 2>&1 | tee /dev/stderr)
+          output=$(docker stack deploy -c stacks/staging.yml floww-staging --with-registry-auth --detach=false 2>&1 | tee /dev/stderr)
           if echo "$output" | grep -q "rollback"; then
             echo "::error::Deployment rolled back due to failure"
             echo "--- Service status ---"
-            docker service ps floww-dashboard-staging_app --no-trunc
-            docker service ps floww-dashboard-staging_centrifugo --no-trunc
+            docker service ps floww-staging_app --no-trunc
+            docker service ps floww-staging_centrifugo --no-trunc
             echo "--- Recent app logs ---"
-            docker service logs floww-dashboard-staging_app --tail 50 2>&1 || true
+            docker service logs floww-staging_app --tail 50 2>&1 || true
             exit 1
           fi
 
@@ -223,13 +223,13 @@ jobs:
           IMAGE_TAG: sha-${{ github.sha }}
         run: |
           set -o pipefail
-          output=$(docker stack deploy -c stacks/production.yml floww-dashboard --with-registry-auth --detach=false 2>&1 | tee /dev/stderr)
+          output=$(docker stack deploy -c stacks/production.yml floww --with-registry-auth --detach=false 2>&1 | tee /dev/stderr)
           if echo "$output" | grep -q "rollback"; then
             echo "::error::Deployment rolled back due to failure"
             echo "--- Service status ---"
-            docker service ps floww-dashboard_app --no-trunc
-            docker service ps floww-dashboard_centrifugo --no-trunc
+            docker service ps floww_app --no-trunc
+            docker service ps floww_centrifugo --no-trunc
             echo "--- Recent app logs ---"
-            docker service logs floww-dashboard_app --tail 50 2>&1 || true
+            docker service logs floww_app --tail 50 2>&1 || true
             exit 1
           fi

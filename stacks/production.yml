@@ -3,7 +3,7 @@ version: "3.8"
 services:
   # Centrifugo WebSocket server
   centrifugo:
-    image: "ghcr.io/usefloww/floww-dashboard-centrifugo:${IMAGE_TAG:-latest}"
+    image: "ghcr.io/usefloww/floww-centrifugo:${IMAGE_TAG:-latest}"
 
     networks:
       - traefik-net
@@ -15,8 +15,8 @@ services:
       - CENTRIFUGO_API_KEY_FILE=/run/secrets/backend_centrifugo_api_key
       - CENTRIFUGO_ADMIN_ENABLED=true
       - CENTRIFUGO_ADMIN_INSECURE=true
-      - CENTRIFUGO_CONNECT_PROXY_ENDPOINT=http://floww-dashboard_app:3000/centrifugo/connect
-      - CENTRIFUGO_SUBSCRIBE_PROXY_ENDPOINT=http://floww-dashboard_app:3000/centrifugo/subscribe
+      - CENTRIFUGO_CONNECT_PROXY_ENDPOINT=http://floww_app:3000/centrifugo/connect
+      - CENTRIFUGO_SUBSCRIBE_PROXY_ENDPOINT=http://floww_app:3000/centrifugo/subscribe
       - CENTRIFUGO_ALLOWED_ORIGINS=["https://app.floww.dev"]
       - CENTRIFUGO_ALLOW_ANONYMOUS=true
 
@@ -43,10 +43,10 @@ services:
           memory: 256M
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.floww-dashboard-centrifugo.rule=Host(`app.floww.dev`) && PathPrefix(`/ws`)"
-        - "traefik.http.routers.floww-dashboard-centrifugo.entrypoints=websecure"
-        - "traefik.http.routers.floww-dashboard-centrifugo.tls.certresolver=myresolver"
-        - "traefik.http.services.floww-dashboard-centrifugo-service.loadbalancer.server.port=8000"
+        - "traefik.http.routers.floww-centrifugo.rule=Host(`app.floww.dev`) && PathPrefix(`/ws`)"
+        - "traefik.http.routers.floww-centrifugo.entrypoints=websecure"
+        - "traefik.http.routers.floww-centrifugo.tls.certresolver=myresolver"
+        - "traefik.http.services.floww-centrifugo-service.loadbalancer.server.port=8000"
 
     ulimits:
       nofile:
@@ -55,7 +55,7 @@ services:
 
   # Main web application
   app:
-    image: ${REGISTRY:-ghcr.io}/usefloww/floww-dashboard:${IMAGE_TAG:-latest}
+    image: ${REGISTRY:-ghcr.io}/usefloww/floww:${IMAGE_TAG:-latest}
 
     networks:
       - traefik-net
@@ -90,7 +90,7 @@ services:
       - DATABASE_HOST=floww.cklmackcedxs.us-east-1.rds.amazonaws.com
       - DATABASE_PORT=5432
       - DATABASE_NAME=postgres
-      - CENTRIFUGO_HOST=floww-dashboard_centrifugo
+      - CENTRIFUGO_HOST=floww_centrifugo
       - CENTRIFUGO_PORT=8000
       - CENTRIFUGO_PUBLIC_URL=https://app.floww.dev
       - BACKEND_URL=https://app.floww.dev
@@ -149,12 +149,12 @@ services:
       labels:
         - "traefik.enable=true"
         # Main app.floww.dev route
-        - "traefik.http.routers.floww-dashboard.rule=Host(`app.floww.dev`) && !PathPrefix(`/ws`)"
-        - "traefik.http.routers.floww-dashboard.entrypoints=websecure"
-        - "traefik.http.routers.floww-dashboard.tls.certresolver=myresolver"
-        - "traefik.http.services.floww-dashboard.loadbalancer.server.port=3000"
-        - "traefik.http.services.floww-dashboard.loadbalancer.healthcheck.path=/health"
-        - "traefik.http.services.floww-dashboard.loadbalancer.healthcheck.interval=30s"
+        - "traefik.http.routers.floww.rule=Host(`app.floww.dev`) && !PathPrefix(`/ws`)"
+        - "traefik.http.routers.floww.entrypoints=websecure"
+        - "traefik.http.routers.floww.tls.certresolver=myresolver"
+        - "traefik.http.services.floww.loadbalancer.server.port=3000"
+        - "traefik.http.services.floww.loadbalancer.healthcheck.path=/health"
+        - "traefik.http.services.floww.loadbalancer.healthcheck.interval=30s"
         # Redirect from app.usefloww.dev to app.floww.dev (excluding /webhook)
         - "traefik.http.middlewares.usefloww-redirect.redirectregex.regex=^https://app\\.usefloww\\.dev/(.*)"
         - "traefik.http.middlewares.usefloww-redirect.redirectregex.replacement=https://app.floww.dev/$${1}"
@@ -167,7 +167,7 @@ services:
         - "traefik.http.routers.usefloww-webhook.rule=Host(`app.usefloww.dev`) && PathPrefix(`/webhook`)"
         - "traefik.http.routers.usefloww-webhook.entrypoints=websecure"
         - "traefik.http.routers.usefloww-webhook.tls.certresolver=myresolver"
-        - "traefik.http.routers.usefloww-webhook.service=floww-dashboard"
+        - "traefik.http.routers.usefloww-webhook.service=floww"
 
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]

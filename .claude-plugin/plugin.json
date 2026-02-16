@@ -6,7 +6,7 @@
     "name": "Floww"
   },
   "homepage": "https://floww.dev",
-  "repository": "https://github.com/usefloww/floww-dashboard",
+  "repository": "https://github.com/usefloww/floww",
   "license": "MIT",
   "keywords": ["floww", "automation", "workflows", "triggers", "deploy"]
 }

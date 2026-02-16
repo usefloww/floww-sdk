@@ -5,7 +5,7 @@
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/usefloww/floww-dashboard.git",
+    "url": "git+https://github.com/usefloww/floww.git",
     "directory": "packages/sdk"
   },
   "main": "dist/index.cjs",
@@ -124,7 +124,7 @@
     "typescript": ">=5.0.0"
   },
   "bugs": {
-    "url": "https://github.com/usefloww/floww-dashboard/issues"
+    "url": "https://github.com/usefloww/floww/issues"
   },
-  "homepage": "https://github.com/usefloww/floww-dashboard/tree/main/packages/sdk#readme"
+  "homepage": "https://github.com/usefloww/floww/tree/main/packages/sdk#readme"
 }

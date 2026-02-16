@@ -27,7 +27,7 @@ export default defineConfig({
     ...(process.env.SENTRY_AUTH_TOKEN ? [
       sentryVitePlugin({
         org: process.env.SENTRY_ORG || 'floww',
-        project: process.env.SENTRY_PROJECT || 'floww-dashboard',
+        project: process.env.SENTRY_PROJECT || 'floww',
         authToken: process.env.SENTRY_AUTH_TOKEN,
       })
     ] : []),

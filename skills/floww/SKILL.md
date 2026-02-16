@@ -258,7 +258,7 @@ When users ask for detailed information about specific providers (triggers, acti
 
 **URL Pattern:**
 ```
-https://raw.githubusercontent.com/usefloww/floww-dashboard/main/packages/sdk/providers/<provider-name>/index.ts
+https://raw.githubusercontent.com/usefloww/floww/main/packages/sdk/providers/<provider-name>/index.ts
 ```
 
 **Available Providers:**
@@ -296,7 +296,7 @@ https://raw.githubusercontent.com/usefloww/floww-dashboard/main/packages/sdk/pro
    - Configuration options
 
 **Example Usage:**
-When user asks: "How do I use GitHub triggers?" → Fetch from `https://raw.githubusercontent.com/usefloww/floww-dashboard/main/packages/sdk/providers/github/index.ts` and extract the triggers object.
+When user asks: "How do I use GitHub triggers?" → Fetch from `https://raw.githubusercontent.com/usefloww/floww/main/packages/sdk/providers/github/index.ts` and extract the triggers object.
 
 ## Additional Resources
 

@@ -8,8 +8,8 @@ reseed:
 
 # Build Docker image (tests the Dockerfile)
 build-docker:
-    docker build -t floww-dashboard:test .
-    docker run --rm -p 3000:3000 floww-dashboard:test
+    docker build -t floww:test .
+    docker run --rm -p 3000:3000 floww:test
 
 # Pull environment variables from AWS Parameter Store to .env
 env-pull:

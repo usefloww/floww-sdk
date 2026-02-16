@@ -450,7 +450,7 @@ async function seed(db: PostgresJsDatabase<typeof schema>) {
         JSON.stringify({
           token: 'ghp_placeholder-not-a-real-token',
           owner: 'acme-corp',
-          repo: 'floww-dashboard',
+          repo: 'floww',
         })
       ),
     },

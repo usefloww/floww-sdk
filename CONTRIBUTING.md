@@ -11,8 +11,8 @@
 1. **Clone and install dependencies**
 
 ```bash
-git clone https://github.com/usefloww/floww-dashboard.git
-cd floww-dashboard
+git clone https://github.com/usefloww/floww.git
+cd floww
 pnpm install
 ```
 

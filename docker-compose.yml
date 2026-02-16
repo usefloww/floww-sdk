@@ -1,7 +1,7 @@
 services:
   # Run database migrations
   migrations:
-    container_name: floww-dashboard-migrations
+    container_name: floww-migrations
     build:
       context: .
       dockerfile: Dockerfile.dev
@@ -23,7 +23,7 @@ services:
   # Creates both 'postgres' (dev) and 'floww_test' (test) databases
   db:
     image: postgres:16-alpine
-    container_name: floww-dashboard-db
+    container_name: floww-db
     environment:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: secret
@@ -43,7 +43,7 @@ services:
     build:
       context: ./centrifugo
       dockerfile: Dockerfile
-    container_name: floww-dashboard-centrifugo
+    container_name: floww-centrifugo
     ports:
       - "8000:8000"
     environment:
