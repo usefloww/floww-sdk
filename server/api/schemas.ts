@@ -50,6 +50,9 @@ export {
 // Device Auth schemas
 export { deviceTokenSchema, refreshTokenSchema } from '@floww/api-contract';
 
+// Config response schemas
+export { authConfigResponseSchema, backendConfigResponseSchema } from '@floww/api-contract';
+
 // Service Account schemas
 export {
   createServiceAccountSchema,
@@ -83,4 +86,6 @@ export type {
   CreateSecretInput,
   SyncTriggersInput,
   ExecuteTriggerInput,
+  AuthConfigResponse,
+  BackendConfigResponse,
 } from '@floww/api-contract';

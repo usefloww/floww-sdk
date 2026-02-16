@@ -1,24 +1,22 @@
-export interface BaseAuthConfig {
-  provider: string;
-  client_id: string;
-  device_authorization_endpoint?: string;
-  token_endpoint?: string;
-  authorization_endpoint?: string;
-  issuer?: string;
-  jwks_uri?: string;
-  audience?: string;
-}
+import type { AuthConfigResponse, BackendConfigResponse } from '@floww/api-contract';
 
-export type AuthConfig = BaseAuthConfig;
+export type AuthConfig = AuthConfigResponse;
 
+/**
+ * Minimal config shape used by CLIAuth — only the fields it actually needs.
+ * The full BackendConfigResponse from the server is a superset of this.
+ */
 export interface BackendConfig {
   auth: AuthConfig;
   websocket_url: string;
 }
 
+/** Full config response from the server's /api/config endpoint. */
+export type FullBackendConfig = BackendConfigResponse;
+
 export async function fetchBackendConfig(
   backendUrl: string
-): Promise<BackendConfig> {
+): Promise<FullBackendConfig> {
   const configUrl = `${backendUrl}/api/config`;
 
   try {
@@ -30,7 +28,7 @@ export async function fetchBackendConfig(
       );
     }
 
-    const config = (await response.json()) as BackendConfig;
+    const config = (await response.json()) as FullBackendConfig;
     return config;
   } catch (error) {
     if (error instanceof Error) {

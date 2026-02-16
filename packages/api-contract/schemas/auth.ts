@@ -26,6 +26,39 @@ export const centrifugoSubscribeSchema = z.object({
 });
 
 // ============================================================================
+// Config response schemas (shared between server and SDK)
+// ============================================================================
+
+export const authConfigResponseSchema = z.object({
+  provider: z.string(),
+  client_id: z.string(),
+  device_authorization_endpoint: z.string().optional(),
+  token_endpoint: z.string().optional(),
+  authorization_endpoint: z.string().optional(),
+  issuer: z.string().optional(),
+  jwks_uri: z.string().optional(),
+  audience: z.string().optional(),
+});
+
+export const backendConfigResponseSchema = z.object({
+  auth: authConfigResponseSchema,
+  websocket_url: z.string(),
+  features: z.object({
+    billing: z.boolean(),
+    singleOrg: z.boolean(),
+    aiBuilder: z.boolean(),
+  }),
+  limits: z.object({
+    maxWorkflows: z.number(),
+    maxExecutionsPerMonth: z.number(),
+  }),
+  version: z.string(),
+});
+
+export type AuthConfigResponse = z.infer<typeof authConfigResponseSchema>;
+export type BackendConfigResponse = z.infer<typeof backendConfigResponseSchema>;
+
+// ============================================================================
 // Inferred types
 // ============================================================================
 

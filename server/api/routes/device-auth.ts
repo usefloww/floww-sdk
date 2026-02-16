@@ -147,10 +147,39 @@ post('/auth/device/token', async ({ request }) => {
   const deviceCode = formData.get('device_code') as string;
   const grantType = formData.get('grant_type') as string;
 
+  // Handle refresh_token grant type (CLI sends refresh requests to token_endpoint)
+  if (grantType === 'refresh_token') {
+    const refreshToken = formData.get('refresh_token') as string;
+
+    if (!refreshToken) {
+      return json({
+        error: 'invalid_request',
+        error_description: 'refresh_token is required',
+      }, 400);
+    }
+
+    const userId = await validateAndUpdateRefreshToken(refreshToken);
+
+    if (!userId) {
+      return json({
+        error: 'invalid_grant',
+        error_description: 'Invalid or revoked refresh token',
+      }, 401);
+    }
+
+    const jwtToken = await createJwt({ sub: userId });
+
+    return json({
+      access_token: jwtToken,
+      token_type: 'Bearer',
+      expires_in: 2592000,
+    });
+  }
+
   if (grantType !== 'urn:ietf:params:oauth:grant-type:device_code') {
     return json({
       error: 'unsupported_grant_type',
-      error_description: 'grant_type must be urn:ietf:params:oauth:grant-type:device_code',
+      error_description: 'grant_type must be urn:ietf:params:oauth:grant-type:device_code or refresh_token',
     }, 400);
   }
 
