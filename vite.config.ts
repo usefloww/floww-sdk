@@ -36,7 +36,7 @@ export default defineConfig({
     exclude: ['cpu-features', 'ssh2'],
   },
   ssr: {
-    external: [...clientOnlyPackages, 'cpu-features', 'ssh2'],
+    external: [...clientOnlyPackages, 'cpu-features', 'ssh2', 'adminjs', 'adminjs-drizzle'],
   },
   build: {
     // Increase chunk size warning limit
