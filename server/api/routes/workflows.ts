@@ -10,10 +10,13 @@
  * POST /api/workflows/:id/deployments - Create deployment
  */
 
+import { eq } from 'drizzle-orm';
 import { get, post, patch, del, json, errorResponse, parseBody } from '~/server/api/router';
 import * as workflowService from '~/server/services/workflow-service';
 import { hasWorkflowAccess } from '~/server/services/access-service';
 import { checkWorkflowLimit } from '~/server/services/billing-service';
+import { getDb } from '~/server/db';
+import { namespaces } from '~/server/db/schema';
 import {
   createWorkflowSchema,
   updateWorkflowSchema,
@@ -68,7 +71,12 @@ post('/workflows', async (ctx) => {
   const { namespaceId, name, description, parentFolderId } = parsed.data;
 
   // Check workflow limit
-  const limitCheck = await checkWorkflowLimit(namespaceId);
+  const db = getDb();
+  const [namespace] = await db.select().from(namespaces).where(eq(namespaces.id, namespaceId)).limit(1);
+  if (!namespace?.organizationOwnerId) {
+    return errorResponse('Namespace not found or has no organization', 400);
+  }
+  const limitCheck = await checkWorkflowLimit(namespace.organizationOwnerId);
   if (!limitCheck.allowed) {
     return errorResponse(limitCheck.message, 403);
   }
@@ -446,7 +454,12 @@ post('/workflows/import/n8n', async (ctx) => {
   const { namespaceId, n8nWorkflow, name } = parsed.data;
 
   // Check workflow limit
-  const limitCheck = await checkWorkflowLimit(namespaceId);
+  const db2 = getDb();
+  const [ns] = await db2.select().from(namespaces).where(eq(namespaces.id, namespaceId)).limit(1);
+  if (!ns?.organizationOwnerId) {
+    return errorResponse('Namespace not found or has no organization', 400);
+  }
+  const limitCheck = await checkWorkflowLimit(ns.organizationOwnerId);
   if (!limitCheck.allowed) {
     return errorResponse(limitCheck.message, 403);
   }

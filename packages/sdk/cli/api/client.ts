@@ -19,7 +19,7 @@ function createApiClient(): ApiClient {
 
   // No authentication found
   throw new Error(
-    "No authentication found. Run `floww auth login` or set FLOWW_TOKEN environment variable."
+    "No authentication found. Run `npx floww login` or set FLOWW_TOKEN environment variable."
   );
 }
 

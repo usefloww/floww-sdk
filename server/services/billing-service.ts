@@ -135,6 +135,10 @@ export async function getOrCreateSubscription(organizationId: string): Promise<S
       .where(eq(subscriptions.organizationId, organizationId))
       .limit(1);
 
+    if (!existing) {
+      throw new Error(`Failed to create or find subscription for organization ${organizationId}`);
+    }
+
     return existing;
   }
 }
