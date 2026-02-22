@@ -1,5 +1,9 @@
 #!/usr/bin/env node
+import { createRequire } from "node:module";
 import { Command } from "commander";
+
+const require = createRequire(import.meta.url);
+const pkg = require("../package.json") as { version: string };
 import { devCommand } from "./commands/dev";
 import { loginCommand, logoutCommand, whoamiCommand } from "./commands/auth";
 import {
@@ -41,7 +45,7 @@ const program = new Command();
 program
   .name("floww")
   .description("CLI for running trigger-based workflows")
-  .version("1.0.0")
+  .version(pkg.version)
   .option("--backend-url <url>", "Backend API URL")
   .option("--workos-client-id <id>", "WorkOS client ID")
   .option("--registry-url <url>", "Docker registry URL");
