@@ -11,6 +11,7 @@ import {
 import Table from "cli-table3";
 import chalk from "chalk";
 import logSymbols from "log-symbols";
+import { resolveNamespaceContext } from "../namespace/namespaceContext";
 
 function formatDate(dateString?: string): string {
   if (!dateString) return "";
@@ -26,9 +27,17 @@ function truncateText(text: string, maxLength: number): string {
   return text.substring(0, maxLength - 3) + "...";
 }
 
-export async function listWorkflowsCommand() {
+export async function listWorkflowsCommand(json: boolean = false) {
   try {
-    const workflows = await fetchWorkflows();
+    const namespace = await resolveNamespaceContext();
+    const workflows = await fetchWorkflows(namespace!.id);
+
+    if (json) {
+      console.log(JSON.stringify(workflows, null, 2));
+      return;
+    }
+
+    console.log(`\n${chalk.bold("Namespace:")} ${chalk.cyan(namespace!.displayName)}`);
 
     if (workflows.length === 0) {
       console.log(
@@ -40,7 +49,6 @@ export async function listWorkflowsCommand() {
     const table = new Table({
       head: [
         chalk.gray("NAME"),
-        chalk.gray("NAMESPACE"),
         chalk.gray("ID"),
         chalk.gray("CREATED"),
         chalk.gray("DESCRIPTION"),
@@ -71,7 +79,6 @@ export async function listWorkflowsCommand() {
     workflows.forEach((workflow: Workflow) => {
       table.push([
         chalk.white(workflow.name),
-        chalk.cyan(workflow.namespaceId),
         chalk.dim(workflow.id),
         chalk.green(formatDate(workflow.createdAt)),
         chalk.dim(truncateText(workflow.description || "", 50)),
@@ -80,17 +87,24 @@ export async function listWorkflowsCommand() {
 
     console.log("\n" + table.toString());
   } catch (error) {
-    console.error(
-      `${logSymbols.error} ${chalk.red("Failed to fetch workflows:")} ${error}`,
-    );
-    process.exit(1);
+    throw error;
   }
 }
 
-export async function listNamespacesCommand() {
+export async function listNamespacesCommand(json: boolean = false) {
   try {
-    console.log(`${logSymbols.info} ${chalk.blue("Fetching namespaces...")}`);
+    if (!json) {
+      console.log(`${logSymbols.info} ${chalk.blue("Fetching namespaces...")}`);
+    }
     const namespaces = await fetchNamespaces();
+
+    if (json) {
+      console.log(JSON.stringify(namespaces, null, 2));
+      return;
+    }
+
+    // Get current namespace context (don't require it)
+    const currentNs = await resolveNamespaceContext({ required: false });
 
     if (namespaces.length === 0) {
       console.log(
@@ -136,9 +150,15 @@ export async function listNamespacesCommand() {
           ? chalk.blue(`user:${namespace.user.id.substring(0, 8)}`)
           : chalk.dim("unknown");
 
+      const isCurrent = currentNs?.id === namespace.id;
+      const displayName = namespace.organization?.displayName || 'Personal';
+      const nameLabel = isCurrent
+        ? chalk.white(displayName) + chalk.green(" (current)")
+        : chalk.white(displayName);
+
       table.push([
-        chalk.white(namespace.organization?.displayName || 'Personal'),
-        chalk.cyan(namespace.organization?.displayName || 'Personal'),
+        nameLabel,
+        chalk.cyan(displayName),
         chalk.dim(namespace.id.substring(0, 8)),
         owner,
       ]);
@@ -166,10 +186,20 @@ function formatStatus(status: string): string {
   }
 }
 
-export async function listDeploymentsCommand(workflowId?: string) {
+export async function listDeploymentsCommand(workflowId?: string, json: boolean = false) {
   try {
-    console.log(`${logSymbols.info} ${chalk.blue("Fetching deployments...")}`);
+    const namespace = await resolveNamespaceContext();
+
+    if (!json) {
+      console.log(`\n${chalk.bold("Namespace:")} ${chalk.cyan(namespace!.displayName)}`);
+      console.log(`${logSymbols.info} ${chalk.blue("Fetching deployments...")}`);
+    }
     const deployments = await listWorkflowDeployments(workflowId);
+
+    if (json) {
+      console.log(JSON.stringify(deployments, null, 2));
+      return;
+    }
 
     if (deployments.length === 0) {
       const message = workflowId
@@ -242,10 +272,17 @@ export async function listDeploymentsCommand(workflowId?: string) {
   }
 }
 
-export async function listProvidersCommand() {
+export async function listProvidersCommand(json: boolean = false) {
   try {
-    console.log(`${logSymbols.info} ${chalk.blue("Fetching providers...")}`);
-    const providers = await fetchProviders();
+    const namespace = await resolveNamespaceContext();
+    const providers = await fetchProviders(namespace!.id);
+
+    if (json) {
+      console.log(JSON.stringify(providers, null, 2));
+      return;
+    }
+
+    console.log(`\n${chalk.bold("Namespace:")} ${chalk.cyan(namespace!.displayName)}`);
 
     if (providers.length === 0) {
       console.log(
@@ -258,7 +295,6 @@ export async function listProvidersCommand() {
       head: [
         chalk.gray("ALIAS"),
         chalk.gray("TYPE"),
-        chalk.gray("NAMESPACE"),
         chalk.gray("ID"),
       ],
       style: {
@@ -288,7 +324,6 @@ export async function listProvidersCommand() {
       table.push([
         chalk.white(provider.alias),
         chalk.cyan(provider.type),
-        chalk.dim(provider.namespaceId.substring(0, 8)),
         chalk.dim(provider.id.substring(0, 8)),
       ]);
     });
@@ -296,9 +331,6 @@ export async function listProvidersCommand() {
     console.log("\n" + table.toString());
     console.log(`\n${chalk.dim(`Total: ${providers.length} providers`)}`);
   } catch (error) {
-    console.error(
-      `${logSymbols.error} ${chalk.red("Failed to fetch providers:")} ${error}`,
-    );
-    process.exit(1);
+    throw error;
   }
 }

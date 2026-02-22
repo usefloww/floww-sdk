@@ -1,7 +1,7 @@
 ---
 name: floww
 description: Write, test, and deploy workflow automations using the Floww SDK. Use when the user wants to create automations, build workflows, set up triggers (cron, webhook, GitHub, Slack, Discord, etc.), deploy code with Floww, or mentions the Floww SDK.
-allowed-tools: Bash(floww *), Bash(npx floww *), Bash(npm *), Bash(pnpm *)
+allowed-tools: Bash(floww *), Bash(npx floww *), Bash(npm *), Bash(pnpm *), WebFetch(https://raw.githubusercontent.com/usefloww/floww/main/packages/sdk/providers/*)
 ---
 
 # Floww SDK
@@ -127,9 +127,7 @@ The following providers are available in the Floww SDK (all imported from `"flow
 - `Secret` - Typed secret access via Zod schema
 
 **AI Models:**
-- `OpenAI` - Access via `openai.models.*` (gpt4o, gpt4oMini, o1, etc.)
-- `Anthropic` - Access via `anthropic.models.*` (claude35Sonnet, claude3Opus, etc.)
-- `GoogleAI` - Access via `google.models.*` (gemini2Flash, gemini15Pro, etc.)
+- `AI` - Unified AI provider. Access models via `ai.models.*` (gpt4o, claude35Sonnet, gemini15Pro, etc.). The specific AI service (OpenAI, Anthropic, Google) is configured in the dashboard.
 
 AI utilities (`generateText`, `streamText`, `generateObject`, `streamObject`) are imported from `"floww/ai"`.
 
@@ -173,14 +171,14 @@ Run `npx floww deploy`. The CLI will:
 Use AI models from OpenAI, Anthropic, or Google via the Vercel AI SDK pattern:
 
 ```typescript
-import { OpenAI } from "floww";
+import { AI } from "floww";
 import { generateText, stepCountIs } from "floww/ai";
 import { z } from "zod";
 
-const openai = new OpenAI();
+const ai = new AI();
 
 const result = await generateText({
-  model: openai.models.gpt4o,
+  model: ai.models.gpt4o,
   system: "You are a helpful assistant.",
   prompt: "Summarize this data...",
   tools: {
@@ -194,7 +192,7 @@ const result = await generateText({
 });
 ```
 
-Available models:
+Available models (depends on configured AI provider):
 - OpenAI: `gpt4o`, `gpt4oMini`, `gpt4Turbo`, `o1`, `o1Mini`
 - Anthropic: `claude35Sonnet`, `claude35SonnetLatest`, `claude3Opus`, `claude35Haiku`
 - Google: `gemini2Flash`, `gemini15Pro`, `gemini15Flash`
@@ -252,6 +250,18 @@ const { apiKey } = mySecret.value();
 | `floww list providers` | List configured providers |
 | `floww manage providers` | Interactively manage provider configs |
 
+All `floww list` commands support `--json` for machine-readable output:
+
+```bash
+floww list providers --json
+floww list workflows --json
+floww list namespaces --json
+floww list deployments --json
+floww list deployments --workflow <id> --json
+```
+
+This outputs raw API data as JSON — full IDs (not truncated), ISO dates (not formatted), all fields (not just table columns).
+
 ## Dynamic Provider Documentation
 
 When users ask for detailed information about specific providers (triggers, actions, method signatures, types), use the WebFetch tool to fetch the latest provider implementation from GitHub:
@@ -271,9 +281,7 @@ https://raw.githubusercontent.com/usefloww/floww/main/packages/sdk/providers/<pr
 - `todoist` - Todoist integration
 - `kvstore` - Key-value storage
 - `secret` - Secret management
-- `ai/openai` - OpenAI models
-- `ai/anthropic` - Anthropic models
-- `ai/google` - Google AI models
+- `ai` - AI models (OpenAI, Anthropic, Google)
 - `google_calendar` - Google Calendar integration
 
 **What to Extract from TypeScript Files:**

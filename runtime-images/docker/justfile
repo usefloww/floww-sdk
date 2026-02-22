@@ -1,0 +1,59 @@
+build:
+    #!/bin/bash
+    set -euo pipefail
+    # Build Docker image for multi-platform support
+    docker build --platform=linux/amd64 --provenance=false -f {{justfile_directory()}}/Dockerfile -t floww-docker-runtime {{justfile_directory()}}/../../
+
+run:
+    #!/bin/bash
+    set -euo pipefail
+    # Run the Docker container locally for testing
+    docker run --rm -p 8000:8000 floww-docker-runtime
+
+test:
+    #!/bin/bash
+    set -euo pipefail
+
+    CONTAINER_NAME="floww-docker-runtime-test"
+    IMAGE_NAME="floww-docker-runtime"
+
+    # Cleanup function
+    cleanup() {
+        echo "Cleaning up..."
+        docker stop $CONTAINER_NAME 2>/dev/null || true
+        docker rm $CONTAINER_NAME 2>/dev/null || true
+    }
+
+    # Ensure cleanup on exit
+    trap cleanup EXIT
+
+    # Clean up any existing container
+    cleanup
+
+    echo "Building Docker image..."
+    docker build --platform=linux/amd64 --provenance=false -f {{justfile_directory()}}/Dockerfile -t $IMAGE_NAME {{justfile_directory()}}/../../
+
+    echo "Starting container..."
+    docker run -d --name $CONTAINER_NAME -p 8000:8000 $IMAGE_NAME
+
+    echo "Waiting for container to be ready..."
+    for i in {1..30}; do
+        if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
+            echo "Container is ready!"
+            break
+        fi
+        if [ $i -eq 30 ]; then
+            echo "Container failed to become ready"
+            exit 1
+        fi
+        sleep 1
+    done
+
+    echo ""
+    node {{justfile_directory()}}/../testHealth.js 8000
+
+    echo ""
+    node {{justfile_directory()}}/../testInvoke.js 8000 /execute docker
+
+    echo ""
+    echo "All tests passed! ✓"

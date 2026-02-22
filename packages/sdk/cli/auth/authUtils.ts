@@ -9,11 +9,17 @@ const TOKEN_FILE = path.join(CONFIG_DIR, "auth.json");
 const PROFILES_DIR = path.join(CONFIG_DIR, "profiles");
 const CURRENT_PROFILE_FILE = path.join(CONFIG_DIR, "current-profile");
 
+export interface ProfileNamespace {
+  id: string;
+  displayName: string;
+}
+
 export interface Profile {
   name: string;
   backendUrl: string;
   config: BackendConfig;
   auth: StoredAuth;
+  namespace?: ProfileNamespace | null;
 }
 
 function generateProfileName(backendUrl: string): string {
@@ -76,6 +82,18 @@ export function setActiveProfile(backendUrl: string): void {
   }
 
   fs.writeFileSync(CURRENT_PROFILE_FILE, profileName);
+}
+
+export function updateProfileNamespace(
+  namespace: ProfileNamespace | null
+): void {
+  const profile = loadActiveProfile();
+  if (!profile) return;
+
+  profile.namespace = namespace;
+  const profileFile = path.join(PROFILES_DIR, `${profile.name}.json`);
+  fs.writeFileSync(profileFile, JSON.stringify(profile, null, 2));
+  fs.chmodSync(profileFile, 0o600);
 }
 
 export function listProfiles(): string[] {

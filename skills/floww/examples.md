@@ -102,15 +102,15 @@ github.triggers.onPush({
 
 ## 4. AI-Powered Slack Bot
 
-A Slack bot that answers questions using OpenAI, with tool calling for channel history search.
+A Slack bot that answers questions using AI, with tool calling for channel history search.
 
 ```typescript
-import { Slack, OpenAI } from "floww";
+import { Slack, AI } from "floww";
 import { generateText, stepCountIs } from "floww/ai";
 import { z } from "zod";
 
 const slack = new Slack();
-const openai = new OpenAI();
+const ai = new AI();
 
 slack.triggers.onMessage({
   channelId: "C09PT6F7NMR", // Your channel ID
@@ -118,7 +118,7 @@ slack.triggers.onMessage({
     const msg = event.body.event;
 
     const result = await generateText({
-      model: openai.models.gpt4o,
+      model: ai.models.gpt4o,
       system: "You are a helpful engineering assistant. Answer concisely.",
       prompt: msg.text,
       tools: {
@@ -155,14 +155,14 @@ slack.triggers.onMessage({
 
 ## 5. GitLab MR Auto-Review with AI
 
-Automatically reviews GitLab merge requests using Anthropic Claude.
+Automatically reviews GitLab merge requests using AI.
 
 ```typescript
-import { Gitlab, Anthropic } from "floww";
+import { Gitlab, AI } from "floww";
 import { generateText } from "floww/ai";
 
 const gitlab = new Gitlab();
-const anthropic = new Anthropic();
+const ai = new AI();
 
 gitlab.triggers.onMergeRequest({
   projectId: "12345",
@@ -175,7 +175,7 @@ gitlab.triggers.onMergeRequest({
     const description = mr.object_attributes.description || "No description";
 
     const result = await generateText({
-      model: anthropic.models.claude35SonnetLatest,
+      model: ai.models.claude35SonnetLatest,
       system: "You are a senior code reviewer. Provide concise, actionable feedback.",
       prompt: `Review this merge request:\n\nTitle: ${title}\nDescription: ${description}`,
     });

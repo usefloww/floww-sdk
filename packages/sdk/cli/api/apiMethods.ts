@@ -108,9 +108,12 @@ export async function fetchNamespaces(): Promise<Namespace[]> {
 // Workflow API methods
 // ============================================================================
 
-export async function fetchWorkflows(): Promise<Workflow[]> {
+export async function fetchWorkflows(
+  namespaceId?: string
+): Promise<Workflow[]> {
+  const query = namespaceId ? `?namespaceId=${namespaceId}` : "";
   const data = await defaultApiClient().apiCall<{ results: Workflow[] }>(
-    "/workflows"
+    `/workflows${query}`
   );
   return data.results;
 }
@@ -301,9 +304,12 @@ export interface ProviderUpdateRequest {
   config?: Record<string, any>;
 }
 
-export async function fetchProviders(): Promise<Provider[]> {
+export async function fetchProviders(
+  namespaceId?: string
+): Promise<Provider[]> {
+  const query = namespaceId ? `?namespaceId=${namespaceId}` : "";
   const data = await defaultApiClient().apiCall<{ results: Provider[] }>(
-    "/providers"
+    `/providers${query}`
   );
   return data.results;
 }

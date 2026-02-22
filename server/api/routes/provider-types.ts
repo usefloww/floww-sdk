@@ -51,6 +51,10 @@ const PROVIDER_METADATA: Record<string, { name: string; description: string }> =
     name: 'Todoist',
     description: 'Todoist task management',
   },
+  ai: {
+    name: 'AI',
+    description: 'AI language models (OpenAI, Anthropic, Google)',
+  },
 };
 
 // List all provider types (from SDK registry + backend metadata)
@@ -101,9 +105,21 @@ function transformSetupSteps(steps: SetupStep[] | undefined) {
         description: step.description,
         required: step.required,
         placeholder: step.placeholder,
+        showWhen: step.showWhen,
       };
     }
-    
+
+    if (step.type === 'choice') {
+      return {
+        type: 'choice' as const,
+        title: step.label,
+        alias: step.key,
+        description: step.description,
+        required: step.required,
+        options: step.options,
+      };
+    }
+
     if (step.type === 'webhook') {
       return {
         type: 'webhook' as const,
@@ -112,7 +128,7 @@ function transformSetupSteps(steps: SetupStep[] | undefined) {
         description: step.description,
       };
     }
-    
+
     return step;
   });
 }

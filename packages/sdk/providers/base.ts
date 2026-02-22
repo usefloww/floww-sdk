@@ -13,7 +13,13 @@ export type SetupStep =
   | SetupStepValue
   | SetupStepSecret
   | SetupStepOAuth
-  | SetupStepWebhook;
+  | SetupStepWebhook
+  | SetupStepChoice;
+
+export interface SetupStepShowWhen {
+  field: string;
+  value: string;
+}
 
 export interface SetupStepValue {
   type: "value";
@@ -22,6 +28,7 @@ export interface SetupStepValue {
   description?: string;
   required: boolean;
   placeholder?: string;
+  showWhen?: SetupStepShowWhen;
 }
 
 export interface SetupStepSecret {
@@ -31,6 +38,16 @@ export interface SetupStepSecret {
   description?: string;
   required: boolean;
   placeholder?: string;
+  showWhen?: SetupStepShowWhen;
+}
+
+export interface SetupStepChoice {
+  type: "choice";
+  key: string;
+  label: string;
+  description?: string;
+  required: boolean;
+  options: string[];
 }
 
 export interface SetupStepOAuth {

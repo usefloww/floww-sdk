@@ -20,6 +20,11 @@ import {
 } from "./crud/list";
 import { manageProviders } from "./providers/index";
 import {
+  namespaceShowCommand,
+  namespaceSelectCommand,
+  namespaceSetCommand,
+} from "./commands/namespace";
+import {
   ClientError,
   UnauthenticatedError,
   ForbiddenError,
@@ -28,6 +33,7 @@ import {
   NetworkError,
   ApiError,
 } from "./api/errors";
+import { NamespaceNotSetError } from "./namespace/namespaceContext";
 
 const program = new Command();
 
@@ -120,25 +126,35 @@ const listCmd = program.command("list").description("List resources");
 listCmd
   .command("workflows")
   .description("List all workflows")
-  .action(listWorkflowsCommand);
+  .option("--json", "Output as JSON")
+  .action(async (options) => {
+    await listWorkflowsCommand(options.json);
+  });
 
 listCmd
   .command("namespaces")
   .description("List all namespaces")
-  .action(listNamespacesCommand);
+  .option("--json", "Output as JSON")
+  .action(async (options) => {
+    await listNamespacesCommand(options.json);
+  });
 
 listCmd
   .command("deployments")
   .description("List workflow deployments")
   .option("-w, --workflow <id>", "Filter by workflow ID")
+  .option("--json", "Output as JSON")
   .action(async (options) => {
-    await listDeploymentsCommand(options.workflow);
+    await listDeploymentsCommand(options.workflow, options.json);
   });
 
 listCmd
   .command("providers")
   .description("List all providers")
-  .action(listProvidersCommand);
+  .option("--json", "Output as JSON")
+  .action(async (options) => {
+    await listProvidersCommand(options.json);
+  });
 
 // Provider management commands
 // program
@@ -151,6 +167,27 @@ program
   .action(async () => {
     await manageProviders();
   });
+
+// Namespace commands
+const nsCmd = program
+  .command("namespace")
+  .alias("ns")
+  .description("Manage namespace context");
+
+nsCmd
+  .command("show", { isDefault: true })
+  .description("Show current namespace context")
+  .action(namespaceShowCommand);
+
+nsCmd
+  .command("select")
+  .description("Interactively select a namespace")
+  .action(namespaceSelectCommand);
+
+nsCmd
+  .command("set <id>")
+  .description("Set namespace by ID")
+  .action(namespaceSetCommand);
 
 // Initialize config with CLI options before parsing commands
 program.hook("preAction", (thisCommand) => {
@@ -169,6 +206,11 @@ async function main() {
   try {
     await program.parseAsync();
   } catch (error) {
+    if (error instanceof NamespaceNotSetError) {
+      console.error(`\n${error.message}\n`);
+      process.exit(1);
+    }
+
     if (error instanceof ClientError) {
       // Handle our custom API errors with user-friendly messages
       if (error instanceof UnauthenticatedError) {

@@ -1,9 +1,7 @@
-import {
-  createWorkflow as apiCreateWorkflow,
-  fetchNamespaces,
-} from "../api/apiMethods";
+import { createWorkflow as apiCreateWorkflow } from "../api/apiMethods";
 import { logger } from "./logger";
 import { getErrorMessage } from "../api/errors";
+import { resolveNamespaceContext } from "../namespace/namespaceContext";
 
 // Re-export createWorkflow from API methods for backward compatibility
 export { apiCreateWorkflow as createWorkflow };
@@ -35,33 +33,11 @@ export async function setupWorkflow(
 
   let selectedNamespaceId = namespaceId;
 
-  // If no namespaceId provided, let user select one
+  // If no namespaceId provided, resolve from namespace context
   if (!selectedNamespaceId) {
-    const namespaces = await logger.task(
-      "Fetching your namespaces",
-      async () => {
-        return await fetchNamespaces();
-      },
-    );
-
-    if (namespaces.length === 0) {
-      throw new Error(
-        "No namespaces found. Please create a namespace in the Floww dashboard first.",
-      );
-    }
-
-    if (namespaces.length === 1) {
-      selectedNamespaceId = namespaces[0].id;
-      logger.success(`Using namespace: ${namespaces[0].organization?.displayName || 'Personal'}`);
-    } else {
-      selectedNamespaceId = await logger.select(
-        "Select a namespace:",
-        namespaces.map((ns) => ({
-          value: ns.id,
-          label: ns.organization?.displayName || 'Personal',
-        })),
-      );
-    }
+    const nsContext = await resolveNamespaceContext();
+    selectedNamespaceId = nsContext!.id;
+    logger.success(`Using namespace: ${nsContext!.displayName}`);
   }
 
   let workflowId: string | undefined;

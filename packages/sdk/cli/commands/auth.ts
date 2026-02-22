@@ -10,6 +10,10 @@ import { getConfigValue } from "../config/configUtils";
 import { logger } from "../utils/logger";
 import { defaultApiClient } from "../api/client";
 import chalk from "chalk";
+import {
+  selectNamespaceInteractive,
+  resolveNamespaceContext,
+} from "../namespace/namespaceContext";
 
 async function loginCommand() {
   const backendUrl = getConfigValue("backendUrl");
@@ -28,6 +32,20 @@ async function loginCommand() {
 
     logger.success("Credentials saved securely");
     logger.plain(`Active profile: ${new URL(backendUrl).hostname}`);
+
+    // Select namespace after login
+    try {
+      const selected = await selectNamespaceInteractive();
+      if (!selected) {
+        logger.warn(
+          "No namespaces found. Run 'floww namespace select' after one is created."
+        );
+      }
+    } catch {
+      logger.warn(
+        "Could not set namespace. Run 'floww namespace select' later."
+      );
+    }
   } catch (error) {
     logger.error("Login failed:", error);
     process.exit(1);
@@ -103,6 +121,27 @@ async function whoamiCommand() {
     console.log(`  ${formatLabel("Backend:")}${chalk.cyan(backendUrl)}`);
     console.log(
       `  ${formatLabel("Auth:")}${chalk.yellow("FLOWW_TOKEN (API Key)")}`
+    );
+  }
+
+  // Namespace section
+  console.log(chalk.gray("─".repeat(50)));
+  console.log(chalk.bold.cyan("\n📁 Namespace"));
+  console.log(chalk.gray("─".repeat(50)));
+
+  const nsContext = await resolveNamespaceContext({ required: false });
+  if (nsContext) {
+    console.log(
+      `  ${formatLabel("Name:")}${chalk.white.bold(nsContext.displayName)}`
+    );
+    console.log(`  ${formatLabel("ID:")}${chalk.dim(nsContext.id)}`);
+    console.log(`  ${formatLabel("Source:")}${chalk.dim(nsContext.source)}`);
+  } else {
+    console.log(
+      `  ${formatLabel("Status:")}${chalk.yellow("Not set")}`
+    );
+    console.log(
+      `  ${chalk.dim("Run 'floww namespace select' to set one")}`
     );
   }
 

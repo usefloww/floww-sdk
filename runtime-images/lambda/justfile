@@ -1,0 +1,59 @@
+build:
+    #!/bin/bash
+    set -euo pipefail
+    # Build Docker image for x86_64 (Lambda architecture)
+    docker build --platform=linux/amd64 --provenance=false -f {{justfile_directory()}}/Dockerfile -t base-floww {{justfile_directory()}}/../../
+
+run:
+    #!/bin/bash
+    set -euo pipefail
+    # Run the Lambda container locally with AWS Lambda Runtime Interface Emulator (RIE)
+    docker run --platform linux/amd64 --rm -p 9000:8080 base-floww
+
+test:
+    #!/bin/bash
+    set -euo pipefail
+
+    CONTAINER_NAME="base-floww-test"
+    IMAGE_NAME="base-floww"
+    LAMBDA_PORT=9000
+
+    # Cleanup function
+    cleanup() {
+        echo "Cleaning up..."
+        docker stop $CONTAINER_NAME 2>/dev/null || true
+        docker rm $CONTAINER_NAME 2>/dev/null || true
+    }
+
+    # Ensure cleanup on exit
+    trap cleanup EXIT
+
+    # Clean up any existing container
+    cleanup
+
+    echo "Building Lambda image..."
+    docker build --platform=linux/amd64 --provenance=false -f {{justfile_directory()}}/Dockerfile -t $IMAGE_NAME {{justfile_directory()}}/../../
+
+    echo "Starting Lambda container with RIE..."
+    docker run -d --platform linux/amd64 --name $CONTAINER_NAME -p $LAMBDA_PORT:8080 $IMAGE_NAME
+
+    echo "Waiting for Lambda runtime to be ready..."
+    for i in {1..30}; do
+        if curl -sf "http://localhost:$LAMBDA_PORT/2015-03-31/functions/function/invocations" \
+            -d '{}' > /dev/null 2>&1; then
+            echo "Lambda runtime is ready!"
+            break
+        fi
+        if [ $i -eq 30 ]; then
+            echo "Lambda runtime failed to become ready"
+            exit 1
+        fi
+        sleep 1
+    done
+
+    echo ""
+    node {{justfile_directory()}}/../testInvoke.js $LAMBDA_PORT /2015-03-31/functions/function/invocations lambda
+
+    echo ""
+    echo "All tests passed! ✓"
+

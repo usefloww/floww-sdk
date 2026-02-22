@@ -36,6 +36,7 @@ export const providerSetupStepSchema = z.object({
   message: z.string().optional(),
   actionText: z.string().optional(),
   actionUrl: z.string().optional(),
+  showWhen: z.object({ field: z.string(), value: z.string() }).optional(),
 });
 
 export const providerTypeSchema = z.object({

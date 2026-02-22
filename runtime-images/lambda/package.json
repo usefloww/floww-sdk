@@ -1,0 +1,13 @@
+{
+  "type": "module",
+  "scripts": {
+    "build": "esbuild --bundle src/handler.ts --outdir=dist --target=esnext --platform=node"
+  },
+  "dependencies": {
+    "floww": "file:../../sdk"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2",
+    "esbuild": "0.25.10"
+  }
+}

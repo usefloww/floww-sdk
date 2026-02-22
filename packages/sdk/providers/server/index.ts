@@ -8,6 +8,8 @@ export type {
   SetupStepSecret,
   SetupStepOAuth,
   SetupStepWebhook,
+  SetupStepChoice,
+  SetupStepShowWhen,
   TriggerCreateContext,
   TriggerDestroyContext,
   TriggerRefreshContext,
@@ -35,3 +37,4 @@ export { SlackServerProvider } from "../slack/server";
 export { DiscordServerProvider } from "../discord/server";
 export { GitLabServerProvider } from "../gitlab/server";
 export { JiraServerProvider } from "../jira/server";
+export { AIServerProvider } from "../ai/server";

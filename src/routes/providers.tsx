@@ -29,7 +29,7 @@ import {
 // Provider logo mapping to Simple Icons CDN
 const getProviderLogoUrl = (type: string): string | null => {
   const iconMap: Record<string, string> = {
-    "openai": "openai",
+    'ai': 'openai',
     'aws': 'amazonaws',
     'gcp': 'googlecloud',
     'googlecloud': 'googlecloud',

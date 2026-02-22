@@ -212,6 +212,10 @@ export function ProviderConfigModal({
     const configToSend: Record<string, any> = {};
     if (providerTypeData && providerTypeData.setupSteps) {
       providerTypeData.setupSteps.forEach((step: ProviderSetupStep) => {
+        // Skip hidden steps (showWhen condition not met)
+        if (step.showWhen && config[step.showWhen.field] !== step.showWhen.value) {
+          return;
+        }
         if (step.type !== "info" && step.type !== "oauth") {
           // For webhook steps, include the default value if it exists
           if (step.type === "webhook") {
@@ -267,6 +271,10 @@ export function ProviderConfigModal({
     const newErrors: Record<string, string> = {};
     if (providerTypeData && providerTypeData.setupSteps) {
           providerTypeData.setupSteps.forEach((step: ProviderSetupStep) => {
+        // Skip validation for hidden steps (showWhen condition not met)
+        if (step.showWhen && config[step.showWhen.field] !== step.showWhen.value) {
+          return;
+        }
         if (step.type !== "info" && step.type !== "oauth" && step.type !== "webhook" && step.required) {
           const value = config[step.alias];
           const hasExistingSecret = isEditMode && step.type === "secret" && provider && provider.config[step.alias];
@@ -322,6 +330,11 @@ export function ProviderConfigModal({
   };
 
   const renderSetupStep = (step: ProviderSetupStep) => {
+    // Conditional visibility based on showWhen
+    if (step.showWhen && config[step.showWhen.field] !== step.showWhen.value) {
+      return null;
+    }
+
     if (step.type === "info") {
       return (
         <div key={step.alias} className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 rounded-lg p-4">
@@ -591,6 +604,7 @@ export function ProviderConfigModal({
                   <SelectValue placeholder="Select a provider type" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="ai">AI</SelectItem>
                   <SelectItem value="slack">Slack</SelectItem>
                   <SelectItem value="gitlab">GitLab</SelectItem>
                   <SelectItem value="github">GitHub</SelectItem>
@@ -598,9 +612,6 @@ export function ProviderConfigModal({
                   <SelectItem value="jira">Jira</SelectItem>
                   <SelectItem value="todoist">Todoist</SelectItem>
                   <SelectItem value="google_calendar">Google Calendar</SelectItem>
-                  <SelectItem value="openai">OpenAI</SelectItem>
-                  <SelectItem value="anthropic">Anthropic</SelectItem>
-                  <SelectItem value="google">Google AI</SelectItem>
                 </SelectContent>
               </Select>
               {errors.providerType && (

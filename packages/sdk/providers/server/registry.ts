@@ -10,6 +10,7 @@ import { JiraServerProvider } from "../jira/server";
 import { KVStoreServerProvider } from "../kvstore/server";
 import { TodoistServerProvider } from "../todoist/server";
 import { GoogleCalendarServerProvider } from "../google_calendar/server";
+import { AIServerProvider } from "../ai/server";
 
 /**
  * Registry of all server-side provider definitions
@@ -26,6 +27,7 @@ const providerRegistry: Record<string, ProviderDefinition<any>> = {
   kvstore: KVStoreServerProvider,
   todoist: TodoistServerProvider,
   google_calendar: GoogleCalendarServerProvider,
+  ai: AIServerProvider,
 };
 
 /**

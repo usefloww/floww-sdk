@@ -108,7 +108,6 @@ async function viewProvider(provider: Provider): Promise<void> {
   console.log(`  Type: ${provider.type}`);
   console.log(`  Alias: ${provider.alias}`);
   console.log(`  ID: ${provider.id}`);
-  console.log(`  Namespace: ${provider.namespaceId}`);
 
   console.log("  Configuration:");
   Object.entries(provider.config).forEach(([key, value]) => {
