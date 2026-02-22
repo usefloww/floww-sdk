@@ -8,17 +8,19 @@ import { LambdaClient } from '@aws-sdk/client-lambda';
 import type { Runtime } from './runtime-types';
 import { DockerRuntime, type DockerRuntimeConfig } from './implementations/docker-runtime';
 import { LambdaRuntime, type LambdaRuntimeConfig } from './implementations/lambda-runtime';
+import { LocalRuntime } from './implementations/local-runtime';
 import { settings } from '~/server/settings';
 
 export * from './runtime-types';
 export { DockerRuntime, type DockerRuntimeConfig } from './implementations/docker-runtime';
 export { LambdaRuntime, type LambdaRuntimeConfig } from './implementations/lambda-runtime';
+export { LocalRuntime, type LocalRuntimeConfig } from './implementations/local-runtime';
 
 // Re-export utility functions for direct access if needed
 export * as dockerUtils from './utils/docker';
 export * as lambdaUtils from './utils/aws-lambda';
 
-export type RuntimeType = 'docker' | 'lambda' | 'kubernetes';
+export type RuntimeType = 'docker' | 'lambda' | 'kubernetes' | 'local';
 
 export interface RuntimeFactoryConfig {
   runtimeType?: RuntimeType;
@@ -71,6 +73,11 @@ export function createRuntime(config: RuntimeFactoryConfig = {}): Runtime {
         backendUrl,
       };
       return new LambdaRuntime(lambdaConfig);
+    }
+
+    case 'local': {
+      const backendUrl = config.backendUrl ?? settings.general.PUBLIC_API_URL ?? settings.general.BACKEND_URL;
+      return new LocalRuntime({ backendUrl });
     }
 
     case 'kubernetes':

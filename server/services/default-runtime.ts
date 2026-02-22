@@ -38,12 +38,55 @@ export async function prepareDefaultRuntime(): Promise<void> {
   const defaultRuntimeImage = settings.runtime.DEFAULT_RUNTIME_IMAGE;
   const runtimeType = settings.runtime.RUNTIME_TYPE;
 
+  // Local runtime: create a runtime record immediately with COMPLETED status
+  if (runtimeType === 'local') {
+    const configHash = generateConfigHashFromUri('local-runtime');
+
+    logger.info('Preparing local default runtime', { configHash });
+
+    const db = getDb();
+
+    const [existingRuntime] = await db
+      .select()
+      .from(runtimes)
+      .where(eq(runtimes.configHash, configHash))
+      .limit(1);
+
+    if (existingRuntime) {
+      logger.info('Local default runtime already exists', { runtimeId: existingRuntime.id });
+      await setDefaultRuntimeId(existingRuntime.id);
+
+      if (existingRuntime.creationStatus !== 'COMPLETED') {
+        await db
+          .update(runtimes)
+          .set({ creationStatus: 'COMPLETED' })
+          .where(eq(runtimes.id, existingRuntime.id));
+      }
+      return;
+    }
+
+    const [runtime] = await db
+      .insert(runtimes)
+      .values({
+        id: generateUlidUuid(),
+        configHash,
+        config: { type: 'local' },
+        creationStatus: 'COMPLETED',
+        creationLogs: [],
+      })
+      .returning();
+
+    logger.info('Created local default runtime record', { runtimeId: runtime.id });
+    await setDefaultRuntimeId(runtime.id);
+    return;
+  }
+
   if (!defaultRuntimeImage) {
     logger.debug('No DEFAULT_RUNTIME_IMAGE configured, skipping default runtime setup');
     return;
   }
 
-  // Only Lambda is supported for default runtime
+  // Only Lambda is supported for default runtime (besides local)
   if (runtimeType !== 'lambda') {
     logger.debug('Default runtime only supported for Lambda, skipping', { runtimeType });
     return;

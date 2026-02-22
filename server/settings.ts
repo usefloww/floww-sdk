@@ -207,7 +207,7 @@ function loadWorkerConfig(): z.infer<typeof WorkerConfigSchema> {
 // ============================================================================
 
 const RuntimeConfigSchema = z.object({
-  RUNTIME_TYPE: z.enum(['docker', 'lambda', 'kubernetes']).default('docker'),
+  RUNTIME_TYPE: z.enum(['docker', 'lambda', 'kubernetes', 'local']).default('docker'),
   DEFAULT_RUNTIME_IMAGE: z.string().optional(),
   REGISTRY_URL: z.string().optional(),
   REGISTRY_URL_RUNTIME: z.string().optional(),
@@ -223,7 +223,7 @@ function loadRuntimeConfig(): z.infer<typeof RuntimeConfigSchema> {
   const registryUrlRuntime = getEnvWithSecret('REGISTRY_URL_RUNTIME');
 
   return {
-    RUNTIME_TYPE: (getEnvWithSecret('RUNTIME_TYPE') as 'docker' | 'lambda' | 'kubernetes') || 'docker',
+    RUNTIME_TYPE: (getEnvWithSecret('RUNTIME_TYPE') as 'docker' | 'lambda' | 'kubernetes' | 'local') || 'docker',
     DEFAULT_RUNTIME_IMAGE: getEnvWithSecret('DEFAULT_RUNTIME_IMAGE'),
     REGISTRY_URL: registryUrl,
     REGISTRY_URL_RUNTIME: registryUrlRuntime || registryUrl,

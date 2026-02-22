@@ -65,7 +65,7 @@ export interface Runtime {
   /**
    * Runtime type identifier
    */
-  readonly type: 'lambda' | 'docker' | 'kubernetes';
+  readonly type: 'lambda' | 'docker' | 'kubernetes' | 'local';
 
   /**
    * Create a runtime environment (e.g., Lambda function, Docker container)
@@ -116,7 +116,7 @@ export interface Runtime {
  * Base runtime class with common functionality
  */
 export abstract class BaseRuntime implements Runtime {
-  abstract readonly type: 'lambda' | 'docker' | 'kubernetes';
+  abstract readonly type: 'lambda' | 'docker' | 'kubernetes' | 'local';
 
   abstract createRuntime(config: RuntimeConfig): Promise<RuntimeCreationStatus>;
   abstract getRuntimeStatus(runtimeId: string): Promise<RuntimeCreationStatus>;
