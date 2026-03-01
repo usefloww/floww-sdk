@@ -35,6 +35,7 @@ export default defineConfig({
       'floww/runtime': path.resolve(__dirname, './packages/sdk/runtime/index.ts'),
       'floww/kv': path.resolve(__dirname, './packages/sdk/kv/index.ts'),
       'floww/codeExecution': path.resolve(__dirname, './packages/sdk/codeExecution/index.ts'),
+      'floww/testing': path.resolve(__dirname, './packages/sdk/testing/index.ts'),
       'floww': path.resolve(__dirname, './packages/sdk/index.ts'),
       '@': path.resolve(__dirname, './src'),
       '~': path.resolve(__dirname, './'),

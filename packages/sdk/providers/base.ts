@@ -3,6 +3,9 @@ import { getProviderConfig, getPolicyRules, trackProviderUsage } from "../userCo
 import { evaluateRuleChain, PolicyViolationError } from "../policies";
 import type { PolicyRuleChain } from "../policies";
 import type { ZodType } from "zod";
+import { isTestMode, trackProviderInstance } from "../testing/state";
+import { wrapActionsWithSpies } from "../testing/spies";
+import { augmentTriggersWithInvoke } from "../testing/invoke";
 
 // ============================================================================
 // Server-Side Interfaces for Provider Implementations
@@ -265,6 +268,16 @@ export abstract class BaseProvider implements Provider {
    * Call this in the subclass constructor after setting `this.actions`.
    */
   protected wrapActionsWithPolicyCheck<T extends Record<string, any>>(actions: T): T {
+    trackProviderInstance(this);
+
+    if (isTestMode()) {
+      if (this.triggers) {
+        (this as any).triggers = augmentTriggersWithInvoke(this, this.triggers);
+      }
+      (this as any)._testPatched = true;
+      return wrapActionsWithSpies(actions);
+    }
+
     const provider = this;
     return new Proxy(actions, {
       get(target, prop, receiver) {

@@ -109,4 +109,13 @@ export default defineConfig([
     clean: false,
     tsconfig: './tsconfig.json',
   },
+  // Testing module build
+  {
+    entry: ['testing/index.ts'],
+    format: ['cjs', 'esm'],
+    dts: true,
+    outDir: 'dist/testing',
+    clean: false,
+    tsconfig: './tsconfig.json',
+  },
 ]);

@@ -59,6 +59,11 @@
       "types": "./dist/policies/index.d.ts",
       "import": "./dist/policies/index.js",
       "require": "./dist/policies/index.cjs"
+    },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "import": "./dist/testing/index.js",
+      "require": "./dist/testing/index.cjs"
     }
   },
   "files": [
