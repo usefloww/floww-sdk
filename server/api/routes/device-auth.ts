@@ -43,7 +43,7 @@ post('/auth/device/authorize', async ({ request }) => {
   // Build verification URI
   const host = request.headers.get('host') ?? 'localhost:3000';
   const scheme = host.includes('localhost') ? 'http' : 'https';
-  const verificationUri = `${scheme}://${host}/auth/device/verify`;
+  const verificationUri = `${scheme}://${host}/api/auth/device/verify`;
   const verificationUriComplete = `${verificationUri}?user_code=${authData.userCode}`;
 
   return json({
@@ -78,9 +78,10 @@ get('/auth/device/verify', async ({ request, query }) => {
   } else {
     // User not logged in - redirect to login
     const returnUrl = userCode
-      ? `/auth/device/verify?user_code=${userCode}`
-      : '/auth/device/verify';
-    return Response.redirect(`/auth/login?next=${encodeURIComponent(returnUrl)}`, 302);
+      ? `/api/auth/device/verify?user_code=${userCode}`
+      : '/api/auth/device/verify';
+    const origin = new URL(request.url).origin;
+    return Response.redirect(`${origin}/auth/login?next=${encodeURIComponent(returnUrl)}`, 302);
   }
 }, false);
 
@@ -96,7 +97,8 @@ post('/auth/device/verify', async ({ request }) => {
   const sessionToken = getJwtFromSessionCookie(cookies);
 
   if (!sessionToken) {
-    return Response.redirect('/auth/login', 302);
+    const origin = new URL(request.url).origin;
+    return Response.redirect(`${origin}/auth/login`, 302);
   }
 
   // Parse form data
@@ -120,7 +122,8 @@ post('/auth/device/verify', async ({ request }) => {
   // Approve the device code - authenticate the user from the session
   const user = await authenticateRequest(cookies, null);
   if (!user) {
-    return Response.redirect('/auth/login', 302);
+    const origin = new URL(request.url).origin;
+    return Response.redirect(`${origin}/auth/login`, 302);
   }
 
   const success = await approveDeviceCode(userCode, user.id);
@@ -312,7 +315,7 @@ function getDeviceApprovePage(userCode: string, error: string): string {
   <h1>Authorize Device</h1>
   <p>Confirm the code shown on your device</p>
   ${errorHtml}
-  <form action="/auth/device/verify" method="POST">
+  <form action="/api/auth/device/verify" method="POST">
     <label>Device Code</label>
     <input type="text" name="user_code" value="${userCode}" placeholder="XXXX-XXXX" required ${readonlyAttr}>
     <button type="submit">Authorize This Device</button>

@@ -36,8 +36,8 @@ async function buildAuthConfig(request?: Request): Promise<AuthConfigResponse> {
       return {
         provider: 'password',
         client_id: 'password-auth',
-        device_authorization_endpoint: `${baseUrl}/auth/device/authorize`,
-        token_endpoint: `${baseUrl}/auth/device/token`,
+        device_authorization_endpoint: `${baseUrl}/api/auth/device/authorize`,
+        token_endpoint: `${baseUrl}/api/auth/device/token`,
         authorization_endpoint: '',
         issuer: 'floww-password-auth',
         jwks_uri: '',
