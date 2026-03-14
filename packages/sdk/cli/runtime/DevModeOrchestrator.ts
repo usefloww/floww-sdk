@@ -268,12 +268,13 @@ export class DevModeOrchestrator {
         : undefined,
     });
 
-    logger.debugInfo(`Synced ${response.webhooks.length} webhook(s) with backend`);
+    const webhooks = response.webhooks || [];
+    logger.debugInfo(`Synced ${webhooks.length} webhook(s) with backend`);
 
-    if (response.webhooks.length > 0) {
+    if (webhooks.length > 0) {
       console.log();
       console.log("🛰️ Remote webhook endpoints (backend):");
-      for (const webhook of response.webhooks) {
+      for (const webhook of webhooks) {
         const methodLabel = (webhook.method || "POST").toUpperCase().padEnd(6);
         let triggerLabel = "webhook trigger";
 

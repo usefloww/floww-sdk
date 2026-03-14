@@ -64,9 +64,15 @@ export class CLIAuth {
 
     logger.success("Successfully authenticated!");
 
-    // Step 4: Fetch user info from /whoami endpoint
-    const user = await this.fetchUserInfo(tokens.access_token);
-    logger.plain(`👤 Logged in as: ${user.email}`);
+    // Step 4: Get user info
+    let user: any;
+    if (tokens.user) {
+      user = tokens.user;
+    } else {
+      user = await this.fetchUserInfo(tokens.access_token);
+    }
+    const displayEmail = user?.email || user?.id || "unknown";
+    logger.plain(`👤 Logged in as: ${displayEmail}`);
 
     // Extract expiration time from JWT
     const expiresAt = extractExpirationFromJWT(tokens.access_token);

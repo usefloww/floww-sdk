@@ -43,6 +43,12 @@ export async function checkProviderAvailability(
 
     // Check each used provider
     for (const used of usedProviders) {
+      // Providers without secret definitions don't need backend registration
+      if (!used.secretDefinitions || used.secretDefinitions.length === 0) {
+        available.push(used);
+        continue;
+      }
+
       const key = `${used.type}:${used.alias || "default"}`;
       const providerExists = existingMap.has(key);
 
