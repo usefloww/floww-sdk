@@ -24,10 +24,6 @@ export class CronEventProducer implements EventProducer {
         const cronEvent: CronEvent = {
           scheduledTime: new Date(),
           actualTime: new Date(),
-          __context: {
-            backend_url:
-              process.env.FLOWW_BACKEND_URL || "https://app.floww.dev",
-          },
         };
         stream.emit("data", { type: "cron", trigger, data: cronEvent });
       });

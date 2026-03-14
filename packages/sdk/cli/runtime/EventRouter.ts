@@ -13,6 +13,7 @@ import { CronEventProducer } from "./eventProducers/cronEventProducer";
 import { WebSocketEventProducer } from "./eventProducers/websocketEventProducer";
 import { DebugContext } from "../../codeExecution";
 import { logger } from "../utils/logger";
+import { getConfigValue } from "../config/configUtils";
 import { ExecutionContext } from "./ExecutionContext";
 import { executionContextManager } from "./ExecutionContextManager";
 import { getAuthToken } from "../auth/tokenUtils";
@@ -127,7 +128,7 @@ export class EventRouter {
     // Set backend URL from environment variable or default if not already set from event
     if (!executionContext.getBackendUrl()) {
       const backendUrl =
-        process.env.FLOWW_BACKEND_URL || "https://app.floww.dev";
+        process.env.FLOWW_BACKEND_URL || getConfigValue("backendUrl");
       executionContext.setBackendUrl(backendUrl);
     }
 
