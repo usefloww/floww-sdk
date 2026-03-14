@@ -1,4 +1,4 @@
-import "floww/testing";
+import "./index";
 import { describe, it, expect, beforeEach } from "vitest";
 import { GitHub } from "../providers/github";
 import { Slack } from "../providers/slack";

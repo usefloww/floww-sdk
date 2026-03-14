@@ -1,0 +1,5 @@
+workflowId: 019cee62-9b11-58e8-6061-b225f97dbf8e
+name: e2e-cron-test
+description: default
+version: 1.0.0
+entrypoint: main.ts
